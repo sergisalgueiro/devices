@@ -13,25 +13,42 @@ class InvalidCustomerIdError(DomainValidationError):
     """Raised when a CustomerId value is invalid."""
 
 
-class InvalidCustomerNameError(DomainValidationError):
-    """Raised when a CustomerName value is invalid."""
+class InvalidDeviceIdError(DomainValidationError):
+    """Raised when a DeviceId value is invalid."""
 
 
-class InvalidCustomerEmailError(DomainValidationError):
-    """Raised when a CustomerEmail value is invalid."""
+class InvalidNameError(DomainValidationError):
+    """Raised when a Name value is invalid."""
 
 
-class InvalidCustomerLanguageError(DomainValidationError):
-    """Raised when a CustomerLanguage value is invalid."""
+class InvalidEmailError(DomainValidationError):
+    """Raised when an Email value is invalid."""
 
 
-class InvalidCustomerCountryError(DomainValidationError):
-    """Raised when a CustomerCountry value is invalid."""
+class InvalidLanguageError(DomainValidationError):
+    """Raised when a Language value is invalid."""
 
 
-class InvalidCustomerTimeZoneError(DomainValidationError):
-    """Raised when a CustomerTimeZone value is invalid."""
+class InvalidCountryError(DomainValidationError):
+    """Raised when a Country value is invalid."""
+
+
+class InvalidTimeZoneError(DomainValidationError):
+    """Raised when a TimeZone value is invalid."""
+
+
+class InvalidSerialNumberError(DomainValidationError):
+    """Raised when a SerialNumber value is invalid."""
+
+
+class InvalidDeviceStatusError(DomainValidationError):
+    """Raised when a DeviceStatus value is invalid."""
 
 
 class InvalidCreatedAtError(DomainValidationError):
     """Raised when a CreatedAt value is invalid."""
+
+
+class InvalidUpdatedAtError(DomainValidationError):
+    """Raised when an UpdatedAt value is invalid."""
+

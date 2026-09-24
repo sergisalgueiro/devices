@@ -8,22 +8,22 @@ import pytest
 
 from app.domain.customer import Customer
 from app.domain.exceptions import (
+    InvalidCountryError,
     InvalidCreatedAtError,
-    InvalidCustomerCountryError,
-    InvalidCustomerEmailError,
     InvalidCustomerIdError,
-    InvalidCustomerLanguageError,
-    InvalidCustomerNameError,
-    InvalidCustomerTimeZoneError,
+    InvalidEmailError,
+    InvalidLanguageError,
+    InvalidNameError,
+    InvalidTimeZoneError,
 )
 from app.domain.value_objects import (
+    Country,
     CreatedAt,
-    CustomerCountry,
-    CustomerEmail,
     CustomerId,
-    CustomerLanguage,
-    CustomerName,
-    CustomerTimeZone,
+    Email,
+    Language,
+    Name,
+    TimeZone,
 )
 
 
@@ -71,152 +71,152 @@ class TestCustomerId:
         assert str(vo) == str(raw_uuid)
 
 
-class TestCustomerName:
+class TestName:
     def test_valid_name(self):
-        vo = CustomerName("Alice Smith")
+        vo = Name("Alice Smith")
         assert vo.value == "Alice Smith"
 
     def test_invalid_empty_or_whitespace(self):
-        with pytest.raises(InvalidCustomerNameError):
-            CustomerName("")
-        with pytest.raises(InvalidCustomerNameError):
-            CustomerName("   ")
+        with pytest.raises(InvalidNameError):
+            Name("")
+        with pytest.raises(InvalidNameError):
+            Name("   ")
 
     def test_invalid_length_exceeded(self):
-        with pytest.raises(InvalidCustomerNameError):
-            CustomerName("A" * 256)
+        with pytest.raises(InvalidNameError):
+            Name("A" * 256)
 
     def test_invalid_type(self):
-        with pytest.raises(InvalidCustomerNameError):
-            CustomerName(1234)  # type: ignore[arg-type]
+        with pytest.raises(InvalidNameError):
+            Name(1234)  # type: ignore[arg-type]
 
     def test_immutability(self):
-        vo = CustomerName("Alice")
+        vo = Name("Alice")
         with pytest.raises(FrozenInstanceError):
             vo.value = "Bob"  # type: ignore[misc]
 
     def test_equality_by_value(self):
-        assert CustomerName("Alice") == CustomerName("Alice")
-        assert CustomerName("Alice") != CustomerName("Bob")
+        assert Name("Alice") == Name("Alice")
+        assert Name("Alice") != Name("Bob")
 
     def test_primitive_accessor(self):
-        vo = CustomerName("Alice")
+        vo = Name("Alice")
         assert vo.value == "Alice"
 
 
-class TestCustomerEmail:
+class TestEmail:
     def test_valid_email(self):
-        vo = CustomerEmail("alice@example.com")
+        vo = Email("alice@example.com")
         assert vo.value == "alice@example.com"
 
     def test_invalid_email_format(self):
-        with pytest.raises(InvalidCustomerEmailError):
-            CustomerEmail("not-an-email")
-        with pytest.raises(InvalidCustomerEmailError):
-            CustomerEmail("@missing-local.com")
-        with pytest.raises(InvalidCustomerEmailError):
-            CustomerEmail("missing-domain@")
+        with pytest.raises(InvalidEmailError):
+            Email("not-an-email")
+        with pytest.raises(InvalidEmailError):
+            Email("@missing-local.com")
+        with pytest.raises(InvalidEmailError):
+            Email("missing-domain@")
 
     def test_invalid_empty(self):
-        with pytest.raises(InvalidCustomerEmailError):
-            CustomerEmail("")
+        with pytest.raises(InvalidEmailError):
+            Email("")
 
     def test_invalid_type(self):
-        with pytest.raises(InvalidCustomerEmailError):
-            CustomerEmail(123)  # type: ignore[arg-type]
+        with pytest.raises(InvalidEmailError):
+            Email(123)  # type: ignore[arg-type]
 
     def test_immutability(self):
-        vo = CustomerEmail("alice@example.com")
+        vo = Email("alice@example.com")
         with pytest.raises(FrozenInstanceError):
             vo.value = "bob@example.com"  # type: ignore[misc]
 
     def test_equality_by_value(self):
-        assert CustomerEmail("a@b.com") == CustomerEmail("a@b.com")
-        assert CustomerEmail("a@b.com") != CustomerEmail("other@b.com")
+        assert Email("a@b.com") == Email("a@b.com")
+        assert Email("a@b.com") != Email("other@b.com")
 
     def test_primitive_accessor(self):
-        vo = CustomerEmail("alice@example.com")
+        vo = Email("alice@example.com")
         assert vo.value == "alice@example.com"
 
 
-class TestCustomerLanguage:
+class TestLanguage:
     def test_valid_iso_639_1(self):
-        vo = CustomerLanguage("en")
+        vo = Language("en")
         assert vo.value == "en"
 
     def test_valid_bcp_47(self):
-        vo = CustomerLanguage("en-US")
+        vo = Language("en-US")
         assert vo.value == "en-US"
 
     def test_invalid_language(self):
-        with pytest.raises(InvalidCustomerLanguageError):
-            CustomerLanguage("invalid_lang")
-        with pytest.raises(InvalidCustomerLanguageError):
-            CustomerLanguage("123")
+        with pytest.raises(InvalidLanguageError):
+            Language("invalid_lang")
+        with pytest.raises(InvalidLanguageError):
+            Language("123")
 
     def test_immutability(self):
-        vo = CustomerLanguage("en")
+        vo = Language("en")
         with pytest.raises(FrozenInstanceError):
             vo.value = "es"  # type: ignore[misc]
 
     def test_equality_by_value(self):
-        assert CustomerLanguage("es") == CustomerLanguage("es")
-        assert CustomerLanguage("es") != CustomerLanguage("en")
+        assert Language("es") == Language("es")
+        assert Language("es") != Language("en")
 
     def test_primitive_accessor(self):
-        vo = CustomerLanguage("es")
+        vo = Language("es")
         assert vo.value == "es"
 
 
-class TestCustomerCountry:
+class TestCountry:
     def test_valid_country(self):
-        vo = CustomerCountry("ES")
+        vo = Country("ES")
         assert vo.value == "ES"
 
     def test_invalid_country(self):
-        with pytest.raises(InvalidCustomerCountryError):
-            CustomerCountry("ESP")
-        with pytest.raises(InvalidCustomerCountryError):
-            CustomerCountry("es")
-        with pytest.raises(InvalidCustomerCountryError):
-            CustomerCountry("12")
+        with pytest.raises(InvalidCountryError):
+            Country("ESP")
+        with pytest.raises(InvalidCountryError):
+            Country("es")
+        with pytest.raises(InvalidCountryError):
+            Country("12")
 
     def test_immutability(self):
-        vo = CustomerCountry("ES")
+        vo = Country("ES")
         with pytest.raises(FrozenInstanceError):
             vo.value = "US"  # type: ignore[misc]
 
     def test_equality_by_value(self):
-        assert CustomerCountry("US") == CustomerCountry("US")
-        assert CustomerCountry("US") != CustomerCountry("ES")
+        assert Country("US") == Country("US")
+        assert Country("US") != Country("ES")
 
     def test_primitive_accessor(self):
-        vo = CustomerCountry("ES")
+        vo = Country("ES")
         assert vo.value == "ES"
 
 
-class TestCustomerTimeZone:
+class TestTimeZone:
     def test_valid_timezone(self):
-        vo = CustomerTimeZone("Europe/Madrid")
+        vo = TimeZone("Europe/Madrid")
         assert vo.value == "Europe/Madrid"
-        utc_vo = CustomerTimeZone("UTC")
+        utc_vo = TimeZone("UTC")
         assert utc_vo.value == "UTC"
 
     def test_invalid_timezone(self):
-        with pytest.raises(InvalidCustomerTimeZoneError):
-            CustomerTimeZone("Mars/Olympus")
+        with pytest.raises(InvalidTimeZoneError):
+            TimeZone("Mars/Olympus")
 
     def test_immutability(self):
-        vo = CustomerTimeZone("UTC")
+        vo = TimeZone("UTC")
         with pytest.raises(FrozenInstanceError):
             vo.value = "Europe/Madrid"  # type: ignore[misc]
 
     def test_equality_by_value(self):
-        assert CustomerTimeZone("UTC") == CustomerTimeZone("UTC")
-        assert CustomerTimeZone("UTC") != CustomerTimeZone("Europe/Madrid")
+        assert TimeZone("UTC") == TimeZone("UTC")
+        assert TimeZone("UTC") != TimeZone("Europe/Madrid")
 
     def test_primitive_accessor(self):
-        vo = CustomerTimeZone("Europe/Madrid")
+        vo = TimeZone("Europe/Madrid")
         assert vo.value == "Europe/Madrid"
 
 
@@ -257,20 +257,20 @@ class TestCustomerEntity:
         created_at = CreatedAt()
         customer = Customer(
             id=customer_id,
-            name=CustomerName("Jane Doe"),
-            email=CustomerEmail("jane@example.com"),
-            language=CustomerLanguage("en-US"),
-            country=CustomerCountry("US"),
-            timezone=CustomerTimeZone("America/New_York"),
+            name=Name("Jane Doe"),
+            email=Email("jane@example.com"),
+            language=Language("en-US"),
+            country=Country("US"),
+            timezone=TimeZone("America/New_York"),
             created_at=created_at,
         )
 
         assert customer.id == customer_id
-        assert customer.name == CustomerName("Jane Doe")
-        assert customer.email == CustomerEmail("jane@example.com")
-        assert customer.language == CustomerLanguage("en-US")
-        assert customer.country == CustomerCountry("US")
-        assert customer.timezone == CustomerTimeZone("America/New_York")
+        assert customer.name == Name("Jane Doe")
+        assert customer.email == Email("jane@example.com")
+        assert customer.language == Language("en-US")
+        assert customer.country == Country("US")
+        assert customer.timezone == TimeZone("America/New_York")
         assert customer.created_at == created_at
 
         # Verify accessors
@@ -282,24 +282,20 @@ class TestCustomerEntity:
         assert customer.timezone.value == "America/New_York"
         assert customer.created_at.value == created_at.value
 
-    def test_create_customer_defaults_and_primitive_coercion(self):
-        customer = Customer(name="Jane Doe", email="jane@example.com")
+    def test_create_customer_with_defaults(self):
+        customer = Customer(
+            name=Name("Jane Doe"),
+            email=Email("jane@example.com"),
+        )
 
         assert isinstance(customer.id, CustomerId)
         assert isinstance(customer.id.value, UUID)
-        assert customer.name == CustomerName("Jane Doe")
+        assert customer.name == Name("Jane Doe")
         assert customer.name.value == "Jane Doe"
-        assert customer.email == CustomerEmail("jane@example.com")
+        assert customer.email == Email("jane@example.com")
         assert customer.email.value == "jane@example.com"
         assert customer.language is None
         assert customer.country is None
         assert customer.timezone is None
         assert isinstance(customer.created_at, CreatedAt)
         assert customer.created_at.value.tzinfo == timezone.utc
-
-    def test_customer_validation_error_on_invalid_data(self):
-        with pytest.raises(InvalidCustomerEmailError):
-            Customer(name="Jane Doe", email="invalid-email")
-
-        with pytest.raises(InvalidCustomerNameError):
-            Customer(name="", email="jane@example.com")

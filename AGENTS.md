@@ -63,10 +63,22 @@ These are distinct from unit-test domain violations because they verify that the
 
 ---
 
-## 5. Domain Modelling — Value Objects
+## 5. Domain Modelling — Value Objects & Entities
+
+### 5.1 Value Objects
 Value objects wrap primitives and enforce validity at construction time. They are identified by their value, not by identity.
 - **Validation in Constructor**: Validation happens in the constructor (`__post_init__` / `__init__`) — constructor returns the valid VO or raises a domain error (`DomainValidationError`) when input is invalid.
 - **Immutable**: No setters (`@dataclass(frozen=True)`).
 - **Equality by Value**: Equality is structural (`__eq__` evaluates value equality).
 - **Primitive Accessor**: Expose an accessor (`.value`) to retrieve the underlying primitive.
 - **Pure Standard Library**: Zero dependencies on external libraries or frameworks (use standard library `dataclasses`, `zoneinfo`, `re`, `uuid`, `datetime`).
+
+### 5.2 Pure Domain Entities & Aggregates
+Domain entities represent core business concepts with distinct identity and lifecycle.
+- **Strict Value Object Composition**: Entities are composed strictly of Value Objects. Entity fields, constructors, and method signatures must accept only complete Value Objects, never primitive types (`str`, `UUID`, `int`, `datetime`) or Union types with primitives (e.g. `DeviceStatus`, never `DeviceStatus | DeviceStatusEnum | str`).
+- **No Type Coercion in Entities (`__post_init__`)**: Entities must never coerce primitives into Value Objects inside `__post_init__` or entity methods. An entity assumes that all incoming arguments are already valid Value Objects.
+- **Explicit Layer Boundaries**:
+  - *Value Objects*: Validate and encapsulate individual primitive attributes at construction.
+  - *Entities & Aggregates*: Enforce business rules, state transitions, and invariants across multiple Value Objects.
+  - *Application Layer / DTO Mappers*: Parse and validate raw input, converting primitives into Value Objects before passing them into domain entities.
+  - *Infrastructure Layer / Repositories*: Reconstitute domain entities by mapping database rows into Value Objects.

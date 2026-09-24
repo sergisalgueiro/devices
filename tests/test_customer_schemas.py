@@ -1,13 +1,20 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from uuid import uuid4
-
 import pytest
 from pydantic import ValidationError
 
 from app.domain.customer import Customer
+from app.domain.value_objects import (
+    Country,
+    CreatedAt,
+    CustomerId,
+    Email,
+    Language,
+    Name,
+    TimeZone,
+)
 from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
+
 
 
 def test_customer_create_valid():
@@ -76,14 +83,15 @@ def test_customer_create_invalid_email():
 
 def test_customer_response_from_domain_entity():
     customer = Customer(
-        id=uuid4(),
-        name="Charlie Brown",
-        email="charlie@example.com",
-        country="US",
-        language="en",
-        timezone="America/New_York",
-        created_at=datetime.now(timezone.utc),
+        id=CustomerId(),
+        name=Name("Charlie Brown"),
+        email=Email("charlie@example.com"),
+        country=Country("US"),
+        language=Language("en"),
+        timezone=TimeZone("America/New_York"),
+        created_at=CreatedAt(),
     )
+
     response = CustomerResponse.model_validate(customer)
     assert response.id == customer.id.value
     assert response.name == customer.name.value

@@ -2,19 +2,24 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import Enum
 import re
 from typing import Generic, TypeVar
 from uuid import UUID, uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.domain.exceptions import (
+    InvalidCountryError,
     InvalidCreatedAtError,
-    InvalidCustomerCountryError,
-    InvalidCustomerEmailError,
     InvalidCustomerIdError,
-    InvalidCustomerLanguageError,
-    InvalidCustomerNameError,
-    InvalidCustomerTimeZoneError,
+    InvalidDeviceIdError,
+    InvalidDeviceStatusError,
+    InvalidEmailError,
+    InvalidLanguageError,
+    InvalidNameError,
+    InvalidSerialNumberError,
+    InvalidTimeZoneError,
+    InvalidUpdatedAtError,
 )
 
 T = TypeVar("T")
@@ -22,6 +27,7 @@ T = TypeVar("T")
 _EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 _COUNTRY_REGEX = re.compile(r"^[A-Z]{2}$")
 _LANGUAGE_REGEX = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
+_SERIAL_NUMBER_REGEX = re.compile(r"^[A-Za-z0-9_\-\.:]+$")
 
 
 @dataclass(frozen=True)
@@ -55,94 +61,214 @@ class CustomerId(ValueObject[UUID]):
 
 
 @dataclass(frozen=True)
-class CustomerName(ValueObject[str]):
-    """Value object representing a customer's name."""
+class DeviceId(ValueObject[UUID]):
+    """Value object representing a device's unique identifier."""
+
+    value: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if isinstance(self.value, str):
+            try:
+                object.__setattr__(self, "value", UUID(self.value))
+            except (ValueError, TypeError, AttributeError) as exc:
+                raise InvalidDeviceIdError(
+                    f"Invalid UUID string for DeviceId: {self.value!r}"
+                ) from exc
+        elif not isinstance(self.value, UUID):
+            raise InvalidDeviceIdError(
+                f"DeviceId must be a UUID instance or valid UUID string, got {type(self.value).__name__}"
+            )
+
+
+@dataclass(frozen=True)
+class Name(ValueObject[str]):
+    """Value object representing a name."""
 
     value: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.value, str):
-            raise InvalidCustomerNameError(
-                f"CustomerName must be a string, got {type(self.value).__name__}"
+            raise InvalidNameError(
+                f"Name must be a string, got {type(self.value).__name__}"
             )
         trimmed = self.value.strip()
         if not trimmed:
-            raise InvalidCustomerNameError("CustomerName cannot be empty or whitespace only")
+            raise InvalidNameError("Name cannot be empty or whitespace only")
         if len(self.value) > 255:
-            raise InvalidCustomerNameError(
-                f"CustomerName cannot exceed 255 characters (got {len(self.value)})"
+            raise InvalidNameError(
+                f"Name cannot exceed 255 characters (got {len(self.value)})"
             )
 
 
 @dataclass(frozen=True)
-class CustomerEmail(ValueObject[str]):
-    """Value object representing a customer's email address."""
+class Email(ValueObject[str]):
+    """Value object representing an email address."""
 
     value: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.value, str):
-            raise InvalidCustomerEmailError(
-                f"CustomerEmail must be a string, got {type(self.value).__name__}"
+            raise InvalidEmailError(
+                f"Email must be a string, got {type(self.value).__name__}"
             )
         trimmed = self.value.strip()
         if not trimmed:
-            raise InvalidCustomerEmailError("CustomerEmail cannot be empty")
+            raise InvalidEmailError("Email cannot be empty")
         if not _EMAIL_REGEX.match(trimmed):
-            raise InvalidCustomerEmailError(f"Invalid email address format: {self.value!r}")
+            raise InvalidEmailError(f"Invalid email address format: {self.value!r}")
 
 
 @dataclass(frozen=True)
-class CustomerLanguage(ValueObject[str]):
-    """Value object representing a customer's preferred language (ISO 639-1 or BCP 47)."""
+class Language(ValueObject[str]):
+    """Value object representing a language code (ISO 639-1 or BCP 47)."""
 
     value: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.value, str):
-            raise InvalidCustomerLanguageError(
-                f"CustomerLanguage must be a string, got {type(self.value).__name__}"
+            raise InvalidLanguageError(
+                f"Language must be a string, got {type(self.value).__name__}"
             )
         if not _LANGUAGE_REGEX.match(self.value):
-            raise InvalidCustomerLanguageError(
-                f"CustomerLanguage must be a valid ISO 639-1 or BCP 47 code (e.g. 'en', 'en-US'), got {self.value!r}"
+            raise InvalidLanguageError(
+                f"Language must be a valid ISO 639-1 or BCP 47 code (e.g. 'en', 'en-US'), got {self.value!r}"
             )
 
 
 @dataclass(frozen=True)
-class CustomerCountry(ValueObject[str]):
-    """Value object representing a customer's country code (ISO 3166-1 alpha-2)."""
+class Country(ValueObject[str]):
+    """Value object representing a country code (ISO 3166-1 alpha-2)."""
 
     value: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.value, str):
-            raise InvalidCustomerCountryError(
-                f"CustomerCountry must be a string, got {type(self.value).__name__}"
+            raise InvalidCountryError(
+                f"Country must be a string, got {type(self.value).__name__}"
             )
         if not _COUNTRY_REGEX.match(self.value):
-            raise InvalidCustomerCountryError(
-                f"CustomerCountry must be a 2-letter uppercase ISO 3166-1 alpha-2 code (e.g. 'ES', 'US'), got {self.value!r}"
+            raise InvalidCountryError(
+                f"Country must be a 2-letter uppercase ISO 3166-1 alpha-2 code (e.g. 'ES', 'US'), got {self.value!r}"
             )
 
 
 @dataclass(frozen=True)
-class CustomerTimeZone(ValueObject[str]):
-    """Value object representing a customer's IANA timezone."""
+class TimeZone(ValueObject[str]):
+    """Value object representing an IANA timezone."""
 
     value: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.value, str):
-            raise InvalidCustomerTimeZoneError(
-                f"CustomerTimeZone must be a string, got {type(self.value).__name__}"
+            raise InvalidTimeZoneError(
+                f"TimeZone must be a string, got {type(self.value).__name__}"
             )
         try:
             ZoneInfo(self.value)
         except (ZoneInfoNotFoundError, ValueError, TypeError) as exc:
-            raise InvalidCustomerTimeZoneError(
-                f"CustomerTimeZone must be a valid IANA Time Zone identifier (e.g. 'Europe/Madrid', 'UTC'), got {self.value!r}"
+            raise InvalidTimeZoneError(
+                f"TimeZone must be a valid IANA Time Zone identifier (e.g. 'Europe/Madrid', 'UTC'), got {self.value!r}"
             ) from exc
+
+
+@dataclass(frozen=True)
+class SerialNumber(ValueObject[str]):
+    """Value object representing a unique serial number."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, str):
+            raise InvalidSerialNumberError(
+                f"SerialNumber must be a string, got {type(self.value).__name__}"
+            )
+        trimmed = self.value.strip()
+        if not trimmed:
+            raise InvalidSerialNumberError(
+                "SerialNumber cannot be empty or whitespace only"
+            )
+        if len(trimmed) > 100:
+            raise InvalidSerialNumberError(
+                f"SerialNumber cannot exceed 100 characters (got {len(trimmed)})"
+            )
+        if not _SERIAL_NUMBER_REGEX.match(trimmed):
+            raise InvalidSerialNumberError(
+                f"Invalid serial number format: {self.value!r}. Only alphanumeric characters, hyphens, underscores, dots, and colons are allowed."
+            )
+        if trimmed != self.value:
+            object.__setattr__(self, "value", trimmed)
+
+
+class DeviceStatusEnum(str, Enum):
+    """Enumeration of possible operational/connectivity states for an IoT device."""
+
+    ONLINE = "online"
+    OFFLINE = "offline"
+    PROVISIONING = "provisioning"
+    MAINTENANCE = "maintenance"
+    ERROR = "error"
+    DECOMMISSIONED = "decommissioned"
+
+
+@dataclass(frozen=True)
+class DeviceStatus(ValueObject[str]):
+    """Value object representing an IoT device's operational/connection status."""
+
+    value: str = DeviceStatusEnum.OFFLINE.value
+
+    def __post_init__(self) -> None:
+        if isinstance(self.value, DeviceStatusEnum):
+            object.__setattr__(self, "value", self.value.value)
+        elif isinstance(self.value, str):
+            val = self.value.strip().lower()
+            try:
+                status_enum = DeviceStatusEnum(val)
+                object.__setattr__(self, "value", status_enum.value)
+            except ValueError as exc:
+                valid_statuses = ", ".join(repr(s.value) for s in DeviceStatusEnum)
+                raise InvalidDeviceStatusError(
+                    f"Invalid device status {self.value!r}. Must be one of: {valid_statuses}"
+                ) from exc
+        else:
+            raise InvalidDeviceStatusError(
+                f"DeviceStatus must be a string or DeviceStatusEnum, got {type(self.value).__name__}"
+            )
+
+    @classmethod
+    def online(cls) -> DeviceStatus:
+        return cls(DeviceStatusEnum.ONLINE.value)
+
+    @classmethod
+    def offline(cls) -> DeviceStatus:
+        return cls(DeviceStatusEnum.OFFLINE.value)
+
+    @classmethod
+    def provisioning(cls) -> DeviceStatus:
+        return cls(DeviceStatusEnum.PROVISIONING.value)
+
+    @classmethod
+    def maintenance(cls) -> DeviceStatus:
+        return cls(DeviceStatusEnum.MAINTENANCE.value)
+
+    @classmethod
+    def error(cls) -> DeviceStatus:
+        return cls(DeviceStatusEnum.ERROR.value)
+
+    @classmethod
+    def decommissioned(cls) -> DeviceStatus:
+        return cls(DeviceStatusEnum.DECOMMISSIONED.value)
+
+    @property
+    def is_online(self) -> bool:
+        return self.value == DeviceStatusEnum.ONLINE.value
+
+    @property
+    def is_offline(self) -> bool:
+        return self.value == DeviceStatusEnum.OFFLINE.value
+
+    @property
+    def is_connected(self) -> bool:
+        return self.value == DeviceStatusEnum.ONLINE.value
 
 
 @dataclass(frozen=True)
@@ -164,9 +290,21 @@ class CreatedAt(ValueObject[datetime]):
             )
 
 
-# Aliases for convenience and generic domain use
-Email = CustomerEmail
-Language = CustomerLanguage
-Country = CustomerCountry
-TimeZone = CustomerTimeZone
-CustomerTimezone = CustomerTimeZone
+@dataclass(frozen=True)
+class UpdatedAt(ValueObject[datetime]):
+    """Value object representing an entity's last update timestamp in strict timezone-aware UTC."""
+
+    value: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, datetime):
+            raise InvalidUpdatedAtError(
+                f"UpdatedAt must be a datetime instance, got {type(self.value).__name__}"
+            )
+        if self.value.tzinfo is None or self.value.utcoffset() is None:
+            raise InvalidUpdatedAtError("UpdatedAt datetime must be timezone-aware (UTC)")
+        if self.value.utcoffset() != timezone.utc.utcoffset(None):
+            raise InvalidUpdatedAtError(
+                f"UpdatedAt datetime must be in UTC timezone, got {self.value.tzinfo}"
+            )
+

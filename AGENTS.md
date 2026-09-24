@@ -82,3 +82,20 @@ Domain entities represent core business concepts with distinct identity and life
   - *Entities & Aggregates*: Enforce business rules, state transitions, and invariants across multiple Value Objects.
   - *Application Layer / DTO Mappers*: Parse and validate raw input, converting primitives into Value Objects before passing them into domain entities.
   - *Infrastructure Layer / Repositories*: Reconstitute domain entities by mapping database rows into Value Objects.
+
+---
+
+## 6. FastAPI Skill
+
+**Always activate the `fastapi` skill** (located at `.agents/skills/fastapi/SKILL.md`) when working on any of the following:
+
+- **API layer code** — `app/main.py`, routers under `app/api/`, or any FastAPI endpoint.
+- **Pydantic request/response schemas** — HTTP-layer models, input validation, response filtering.
+- **Dependency injection** — FastAPI `Depends()`, shared dependencies, `yield` dependencies with cleanup.
+- **Streaming responses** — Server-Sent Events (`EventSourceResponse`), JSON Lines, or byte streaming (`StreamingResponse`).
+- **Routing patterns** — `APIRouter` prefixes, tags, shared router-level dependencies, or `include_router()` usage.
+- **Frontend serving** — `app.frontend()` / `router.frontend()` for serving built static assets.
+- **Async vs sync path operations** — deciding whether an endpoint or dependency should be `async def` or `def`.
+- **Tooling choices** — uv, Ruff, ty, Asyncer, SQLModel, HTTPX in the context of a FastAPI project.
+
+Read the skill **before** writing any FastAPI-related code to ensure patterns stay up to date with the latest FastAPI version and best practices (e.g. use `Annotated` for all parameters and dependencies, never use `ORJSONResponse`, never use `RootModel`, prefer return types over `response_model`).

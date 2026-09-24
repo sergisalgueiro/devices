@@ -45,10 +45,21 @@ class InvalidDeviceStatusError(DomainValidationError):
     """Raised when a DeviceStatus value is invalid."""
 
 
-class InvalidCreatedAtError(DomainValidationError):
-    """Raised when a CreatedAt value is invalid."""
+class InvalidTimestampError(DomainValidationError):
+    """Raised when a Timestamp value is invalid."""
 
 
-class InvalidUpdatedAtError(DomainValidationError):
-    """Raised when an UpdatedAt value is invalid."""
+class InvalidMeasurementIdError(DomainValidationError):
+    """Raised when a MeasurementId value is invalid."""
 
+
+class InvalidMeasurementTypeError(DomainValidationError):
+    """Raised when a MeasurementType value is invalid."""
+
+
+class InvalidMeasurementValueError(DomainValidationError):
+    """Raised when a MeasurementValue value is invalid."""
+
+
+class InvalidMeasurementUnitError(DomainValidationError):
+    """Raised when a MeasurementUnit value is invalid."""

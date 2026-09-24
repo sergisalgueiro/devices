@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from app.domain.value_objects import (
     Country,
-    CreatedAt,
+    Timestamp,
     CustomerId,
     Email,
     Language,
@@ -23,4 +23,4 @@ class Customer:
     language: Language | None = None
     country: Country | None = None
     timezone: TimeZone | None = None
-    created_at: CreatedAt = field(default_factory=CreatedAt)
+    created_at: Timestamp = field(default_factory=Timestamp)

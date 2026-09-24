@@ -14,7 +14,7 @@ from app.domain.exceptions import (
     InvalidDeviceStatusError,
     InvalidSerialNumberError,
     InvalidTimeZoneError,
-    InvalidUpdatedAtError,
+    InvalidTimestampError,
 )
 from app.domain.value_objects import (
     CreatedAt,
@@ -187,17 +187,17 @@ class TestUpdatedAt:
 
     def test_invalid_naive_datetime(self):
         naive_dt = datetime(2026, 1, 1, 12, 0, 0)
-        with pytest.raises(InvalidUpdatedAtError):
+        with pytest.raises(InvalidTimestampError):
             UpdatedAt(naive_dt)
 
     def test_invalid_non_utc_timezone(self):
         madrid_tz = ZoneInfo("Europe/Madrid")
         madrid_dt = datetime(2026, 1, 1, 12, 0, 0, tzinfo=madrid_tz)
-        with pytest.raises(InvalidUpdatedAtError):
+        with pytest.raises(InvalidTimestampError):
             UpdatedAt(madrid_dt)
 
     def test_invalid_type(self):
-        with pytest.raises(InvalidUpdatedAtError):
+        with pytest.raises(InvalidTimestampError):
             UpdatedAt("2026-01-01T00:00:00Z")  # type: ignore[arg-type]
 
     def test_immutability(self):

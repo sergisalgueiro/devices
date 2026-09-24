@@ -1,39 +1,47 @@
 from app.domain.customer import Customer
 from app.domain.device import Device
+from app.domain.measurement import Measurement
 from app.domain.exceptions import (
     DomainError,
     DomainValidationError,
     InvalidCountryError,
-    InvalidCreatedAtError,
     InvalidCustomerIdError,
     InvalidDeviceIdError,
     InvalidDeviceStatusError,
     InvalidEmailError,
     InvalidLanguageError,
+    InvalidMeasurementIdError,
+    InvalidMeasurementTypeError,
+    InvalidMeasurementUnitError,
+    InvalidMeasurementValueError,
     InvalidNameError,
     InvalidSerialNumberError,
     InvalidTimeZoneError,
-    InvalidUpdatedAtError,
+    InvalidTimestampError,
 )
 from app.domain.value_objects import (
     Country,
-    CreatedAt,
     CustomerId,
     DeviceId,
     DeviceStatus,
     DeviceStatusEnum,
     Email,
     Language,
+    MeasurementId,
+    MeasurementType,
+    MeasurementUnit,
+    MeasurementValue,
     Name,
     SerialNumber,
     TimeZone,
-    UpdatedAt,
+    Timestamp,
     ValueObject,
 )
 
 __all__ = [
     "Customer",
     "Device",
+    "Measurement",
     "ValueObject",
     "CustomerId",
     "DeviceId",
@@ -45,8 +53,11 @@ __all__ = [
     "SerialNumber",
     "DeviceStatus",
     "DeviceStatusEnum",
-    "CreatedAt",
-    "UpdatedAt",
+    "Timestamp",
+    "MeasurementId",
+    "MeasurementType",
+    "MeasurementValue",
+    "MeasurementUnit",
     # Domain Exceptions
     "DomainError",
     "DomainValidationError",
@@ -59,7 +70,9 @@ __all__ = [
     "InvalidTimeZoneError",
     "InvalidSerialNumberError",
     "InvalidDeviceStatusError",
-    "InvalidCreatedAtError",
-    "InvalidUpdatedAtError",
+    "InvalidTimestampError",
+    "InvalidMeasurementIdError",
+    "InvalidMeasurementTypeError",
+    "InvalidMeasurementValueError",
+    "InvalidMeasurementUnitError",
 ]
-

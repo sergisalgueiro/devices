@@ -10,16 +10,19 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.domain.exceptions import (
     InvalidCountryError,
-    InvalidCreatedAtError,
     InvalidCustomerIdError,
     InvalidDeviceIdError,
     InvalidDeviceStatusError,
     InvalidEmailError,
     InvalidLanguageError,
+    InvalidMeasurementIdError,
+    InvalidMeasurementTypeError,
+    InvalidMeasurementUnitError,
+    InvalidMeasurementValueError,
     InvalidNameError,
     InvalidSerialNumberError,
     InvalidTimeZoneError,
-    InvalidUpdatedAtError,
+    InvalidTimestampError,
 )
 
 T = TypeVar("T")
@@ -272,39 +275,103 @@ class DeviceStatus(ValueObject[str]):
 
 
 @dataclass(frozen=True)
-class CreatedAt(ValueObject[datetime]):
-    """Value object representing an entity creation timestamp in strict timezone-aware UTC."""
+class Timestamp(ValueObject[datetime]):
+    """Value object representing a timezone-aware UTC timestamp."""
 
     value: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self) -> None:
         if not isinstance(self.value, datetime):
-            raise InvalidCreatedAtError(
-                f"CreatedAt must be a datetime instance, got {type(self.value).__name__}"
+            raise InvalidTimestampError(
+                f"Timestamp must be a datetime instance, got {type(self.value).__name__}"
             )
         if self.value.tzinfo is None or self.value.utcoffset() is None:
-            raise InvalidCreatedAtError("CreatedAt datetime must be timezone-aware (UTC)")
+            raise InvalidTimestampError("Timestamp datetime must be timezone-aware (UTC)")
         if self.value.utcoffset() != timezone.utc.utcoffset(None):
-            raise InvalidCreatedAtError(
-                f"CreatedAt datetime must be in UTC timezone, got {self.value.tzinfo}"
+            raise InvalidTimestampError(
+                f"Timestamp datetime must be in UTC timezone, got {self.value.tzinfo}"
+            )
+
+
+
+
+@dataclass(frozen=True)
+class MeasurementId(ValueObject[UUID]):
+    """Value object representing a measurement's unique identifier."""
+
+    value: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if isinstance(self.value, str):
+            try:
+                object.__setattr__(self, "value", UUID(self.value))
+            except (ValueError, TypeError, AttributeError) as exc:
+                raise InvalidMeasurementIdError(
+                    f"Invalid UUID string for MeasurementId: {self.value!r}"
+                ) from exc
+        elif not isinstance(self.value, UUID):
+            raise InvalidMeasurementIdError(
+                f"MeasurementId must be a UUID instance or valid UUID string, got {type(self.value).__name__}"
             )
 
 
 @dataclass(frozen=True)
-class UpdatedAt(ValueObject[datetime]):
-    """Value object representing an entity's last update timestamp in strict timezone-aware UTC."""
+class MeasurementType(ValueObject[str]):
+    """Value object representing the type/category of a measurement (e.g. 'temperature', 'humidity')."""
 
-    value: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    value: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.value, datetime):
-            raise InvalidUpdatedAtError(
-                f"UpdatedAt must be a datetime instance, got {type(self.value).__name__}"
+        if not isinstance(self.value, str):
+            raise InvalidMeasurementTypeError(
+                f"MeasurementType must be a string, got {type(self.value).__name__}"
             )
-        if self.value.tzinfo is None or self.value.utcoffset() is None:
-            raise InvalidUpdatedAtError("UpdatedAt datetime must be timezone-aware (UTC)")
-        if self.value.utcoffset() != timezone.utc.utcoffset(None):
-            raise InvalidUpdatedAtError(
-                f"UpdatedAt datetime must be in UTC timezone, got {self.value.tzinfo}"
+        trimmed = self.value.strip()
+        if not trimmed:
+            raise InvalidMeasurementTypeError(
+                "MeasurementType cannot be empty or whitespace only"
             )
+        if len(trimmed) > 100:
+            raise InvalidMeasurementTypeError(
+                f"MeasurementType cannot exceed 100 characters (got {len(trimmed)})"
+            )
+        if trimmed != self.value:
+            object.__setattr__(self, "value", trimmed)
 
+
+@dataclass(frozen=True)
+class MeasurementValue(ValueObject[float]):
+    """Value object representing the numeric value of a measurement."""
+
+    value: float
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, (int, float)):
+            raise InvalidMeasurementValueError(
+                f"MeasurementValue must be a numeric type, got {type(self.value).__name__}"
+            )
+        object.__setattr__(self, "value", float(self.value))
+
+
+@dataclass(frozen=True)
+class MeasurementUnit(ValueObject[str]):
+    """Value object representing the unit of a measurement (e.g. '°C', 'hPa', '%')."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, str):
+            raise InvalidMeasurementUnitError(
+                f"MeasurementUnit must be a string, got {type(self.value).__name__}"
+            )
+        trimmed = self.value.strip()
+        if not trimmed:
+            raise InvalidMeasurementUnitError(
+                "MeasurementUnit cannot be empty or whitespace only"
+            )
+        if len(trimmed) > 50:
+            raise InvalidMeasurementUnitError(
+                f"MeasurementUnit cannot exceed 50 characters (got {len(trimmed)})"
+            )
+        if trimmed != self.value:
+            object.__setattr__(self, "value", trimmed)

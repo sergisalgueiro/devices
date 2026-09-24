@@ -9,12 +9,12 @@ import pytest
 from app.domain.customer import Customer
 from app.domain.exceptions import (
     InvalidCountryError,
-    InvalidCreatedAtError,
     InvalidCustomerIdError,
     InvalidEmailError,
     InvalidLanguageError,
     InvalidNameError,
     InvalidTimeZoneError,
+    InvalidTimestampError,
 )
 from app.domain.value_objects import (
     Country,
@@ -233,7 +233,7 @@ class TestCreatedAt:
 
     def test_invalid_naive_datetime(self):
         naive_dt = datetime(2026, 1, 1, 12, 0, 0)
-        with pytest.raises(InvalidCreatedAtError):
+        with pytest.raises(InvalidTimestampError):
             CreatedAt(naive_dt)
 
     def test_immutability(self):

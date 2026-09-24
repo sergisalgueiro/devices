@@ -336,3 +336,39 @@ class TestDeviceEntity:
         device.update_status(DeviceStatus.error())
         assert device.status == DeviceStatus.error()
         assert device.status.value == "error"
+
+    def test_default_is_active_is_true(self):
+        device = Device(
+            serial_number=SerialNumber("SN-100"),
+            customer_id=CustomerId(),
+        )
+        assert device.is_active is True
+
+    def test_set_active_false_and_true(self):
+        device = Device(
+            serial_number=SerialNumber("SN-100"),
+            customer_id=CustomerId(),
+        )
+        initial_updated_at = device.updated_at.value
+
+        device.set_active(False)
+        assert device.is_active is False
+        assert device.updated_at.value >= initial_updated_at
+
+        inactive_updated_at = device.updated_at.value
+        device.set_active(True)
+        assert device.is_active is True
+        assert device.updated_at.value >= inactive_updated_at
+
+    def test_set_active_idempotent_noop(self):
+        device = Device(
+            serial_number=SerialNumber("SN-100"),
+            customer_id=CustomerId(),
+            is_active=True,
+        )
+        initial_updated_at = device.updated_at
+
+        # Setting to True when already True is a no-op: does not change timestamp or state
+        device.set_active(True)
+        assert device.is_active is True
+        assert device.updated_at == initial_updated_at

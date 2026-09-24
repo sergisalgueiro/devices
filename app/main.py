@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import FastAPI
 
+from app.api.devices import router as devices_router
 from app.infrastructure.db.session import engine
 
 
@@ -19,6 +20,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+app.include_router(devices_router)
 
 
 @app.get("/health", tags=["Health"])

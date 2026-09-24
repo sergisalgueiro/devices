@@ -17,9 +17,15 @@ class DeviceModel(Base):
     id: Mapped[UUID] = mapped_column(sa.UUID(as_uuid=True), primary_key=True)
     serial_number: Mapped[str] = mapped_column(sa.String(100), nullable=False, unique=True)
     customer_id: Mapped[UUID] = mapped_column(
-        sa.UUID(as_uuid=True), nullable=False, index=True
+        sa.UUID(as_uuid=True),
+        sa.ForeignKey("customers.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     status: Mapped[str] = mapped_column(sa.String(50), nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, server_default=sa.true()
+    )
     timezone: Mapped[str | None] = mapped_column(sa.String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)

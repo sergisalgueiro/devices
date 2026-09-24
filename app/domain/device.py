@@ -21,10 +21,18 @@ class Device:
     customer_id: CustomerId
     id: DeviceId = field(default_factory=DeviceId)
     status: DeviceStatus = field(default_factory=DeviceStatus)
+    is_active: bool = True
     timezone: TimeZone | None = None
     created_at: CreatedAt = field(default_factory=CreatedAt)
     updated_at: UpdatedAt = field(default_factory=UpdatedAt)
 
+
+    def set_active(self, is_active: bool) -> None:
+        """Update activation status. Idempotent no-op if already in the target state."""
+        if self.is_active == is_active:
+            return
+        self.is_active = is_active
+        self.touch()
 
     def update_status(self, new_status: DeviceStatus) -> None:
         """Update the device status and refresh the updated_at timestamp."""

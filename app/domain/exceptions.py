@@ -63,3 +63,7 @@ class InvalidMeasurementValueError(DomainValidationError):
 
 class InvalidMeasurementUnitError(DomainValidationError):
     """Raised when a MeasurementUnit value is invalid."""
+
+
+class DeviceNotFoundError(DomainError):
+    """Raised when a device cannot be found by its identifier."""

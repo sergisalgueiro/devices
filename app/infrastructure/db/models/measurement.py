@@ -16,7 +16,10 @@ class MeasurementModel(Base):
 
     id: Mapped[UUID] = mapped_column(sa.UUID(as_uuid=True), primary_key=True)
     device_id: Mapped[UUID] = mapped_column(
-        sa.UUID(as_uuid=True), nullable=False, index=True
+        sa.UUID(as_uuid=True),
+        sa.ForeignKey("devices.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
     )
     type: Mapped[str] = mapped_column(sa.String(100), nullable=False)
     value: Mapped[float] = mapped_column(sa.Float, nullable=False)

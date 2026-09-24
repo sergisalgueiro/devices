@@ -1,9 +1,23 @@
+from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
+
 from fastapi import FastAPI
+
+from app.infrastructure.db.session import engine
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan: disposes the async DB engine on shutdown."""
+    yield
+    await engine.dispose()
+
 
 app = FastAPI(
     title="Device Management & Measurement API",
     description="API to manage customers, devices, and ingest/retrieve measurements.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 

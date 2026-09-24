@@ -292,6 +292,12 @@ class Timestamp(ValueObject[datetime]):
                 f"Timestamp datetime must be in UTC timezone, got {self.value.tzinfo}"
             )
 
+class CreatedAt(Timestamp):
+    """Value object representing the creation timestamp of a domain entity."""
+
+
+class UpdatedAt(Timestamp):
+    """Value object representing the last-updated timestamp of a domain entity."""
 
 
 

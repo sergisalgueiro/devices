@@ -3,12 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from app.domain.value_objects import (
+    CreatedAt,
     DeviceId,
     DeviceStatus,
     CustomerId,
     SerialNumber,
     TimeZone,
-    Timestamp,
+    UpdatedAt,
 )
 
 
@@ -21,8 +22,8 @@ class Device:
     id: DeviceId = field(default_factory=DeviceId)
     status: DeviceStatus = field(default_factory=DeviceStatus)
     timezone: TimeZone | None = None
-    created_at: Timestamp = field(default_factory=Timestamp)
-    updated_at: Timestamp = field(default_factory=Timestamp)
+    created_at: CreatedAt = field(default_factory=CreatedAt)
+    updated_at: UpdatedAt = field(default_factory=UpdatedAt)
 
 
     def update_status(self, new_status: DeviceStatus) -> None:
@@ -55,4 +56,4 @@ class Device:
 
     def touch(self) -> None:
         """Update the updated_at timestamp to current UTC time."""
-        self.updated_at = Timestamp()
+        self.updated_at = UpdatedAt()

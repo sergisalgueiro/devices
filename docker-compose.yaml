@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: api_user
+      POSTGRES_PASSWORD: api_password
+      POSTGRES_DB: api_database
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persist database data between container restarts
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Ensure PostgreSQL is actually ready to accept connections
+      test: ["CMD-SHELL", "pg_isready -U api_user -d api_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: fastapi_app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      # Inject the connection string so your Python code can read it
+      # Note: We use postgresql+asyncpg for the async SQLAlchemy driver
+      - DATABASE_URL=postgresql+asyncpg://api_user:api_password@db:5432/api_database
+    volumes:
+      # Map the local directory to the container for hot-reloading
+      - .:/project
+    depends_on:
+      db:
+        # Wait for the DB healthcheck to pass before starting the API
+        condition: service_healthy
+
+volumes:
+  postgres_data:

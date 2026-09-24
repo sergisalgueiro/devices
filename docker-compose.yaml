@@ -3,11 +3,13 @@ services:
     image: postgres:17-alpine
     container_name: postgres_db
     restart: always
+    command: postgres -c timezone=UTC -c log_timezone=UTC
     environment:
       POSTGRES_USER: api_user
       POSTGRES_PASSWORD: api_password
       POSTGRES_DB: api_database
       PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: UTC
     ports:
       - "5432:5432"
     volumes:
@@ -30,6 +32,7 @@ services:
       # Inject the connection string so your Python code can read it
       # Note: We use postgresql+asyncpg for the async SQLAlchemy driver
       - DATABASE_URL=postgresql+asyncpg://api_user:api_password@db:5432/api_database
+      - TZ=UTC
     volumes:
       # Map the local directory to the container for hot-reloading
       - .:/project

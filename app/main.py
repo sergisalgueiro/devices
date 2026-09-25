@@ -1,16 +1,26 @@
-from contextlib import asynccontextmanager
+import logging
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from starlette import status
 
 from app.api.devices import router as devices_router
+from app.domain.exceptions import DeviceNotFoundError, DomainError, DomainValidationError, InactiveDeviceError
 from app.infrastructure.db.session import engine
+from app.infrastructure.logging import configure_logging
+
+configure_logging()
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan: disposes the async DB engine on shutdown."""
+    logger.info("Application startup: Device Management API v0.1.0")
     yield
+    logger.info("Application shutdown: disposing database engine")
     await engine.dispose()
 
 
@@ -20,6 +30,37 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(DeviceNotFoundError)
+async def device_not_found_handler(request: Request, exc: DeviceNotFoundError) -> JSONResponse:
+    logger.warning("Device not found: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
+
+
+@app.exception_handler(InactiveDeviceError)
+async def inactive_device_handler(request: Request, exc: InactiveDeviceError) -> JSONResponse:
+    logger.warning("Inactive device: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": str(exc)})
+
+
+@app.exception_handler(DomainValidationError)
+async def domain_validation_error_handler(request: Request, exc: DomainValidationError) -> JSONResponse:
+    logger.warning("Validation error: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": str(exc)})
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
+    logger.error("Domain error: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error("Unhandled exception: %s %s", request.method, request.url.path, exc_info=True)
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
+
 
 app.include_router(devices_router)
 

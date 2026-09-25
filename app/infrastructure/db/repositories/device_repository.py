@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from sqlalchemy import select
@@ -18,6 +19,8 @@ from app.domain.value_objects import (
 )
 from app.infrastructure.db.models.device import DeviceModel
 
+logger = logging.getLogger(__name__)
+
 
 class SqlAlchemyDeviceRepository(DeviceRepository):
     """SQLAlchemy implementation of the DeviceRepository interface."""
@@ -27,12 +30,15 @@ class SqlAlchemyDeviceRepository(DeviceRepository):
 
     async def get_by_id(self, device_id: UUID) -> Device | None:
         """Return the Device with the given id, or None if not found."""
+        logger.debug("SELECT device: id=%s", device_id)
         result = await self._session.execute(
             select(DeviceModel).where(DeviceModel.id == device_id)
         )
         row = result.scalar_one_or_none()
         if row is None:
+            logger.debug("Device not found in DB: id=%s", device_id)
             return None
+        logger.debug("Device found: id=%s", device_id)
         return self._to_domain(row)
 
     async def save(self, device: Device) -> None:
@@ -43,8 +49,11 @@ class SqlAlchemyDeviceRepository(DeviceRepository):
         row = result.scalar_one_or_none()
 
         if row is None:
+            logger.debug("INSERT device: id=%s", device.id.value)
             row = DeviceModel(id=device.id.value)
             self._session.add(row)
+        else:
+            logger.debug("UPDATE device: id=%s", device.id.value)
 
         row.serial_number = device.serial_number.value
         row.customer_id = device.customer_id.value
@@ -55,6 +64,7 @@ class SqlAlchemyDeviceRepository(DeviceRepository):
         row.updated_at = device.updated_at.value
 
         await self._session.flush()
+        logger.debug("Device flushed: id=%s", device.id.value)
 
     @staticmethod
     def _to_domain(row: DeviceModel) -> Device:

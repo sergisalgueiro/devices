@@ -33,6 +33,7 @@ services:
       # Note: We use postgresql+asyncpg for the async SQLAlchemy driver
       - DATABASE_URL=postgresql+asyncpg://api_user:api_password@db:5432/api_database
       - TZ=UTC
+      - LOG_LEVEL=INFO
     volumes:
       # Map the local directory to the container for hot-reloading
       - .:/project

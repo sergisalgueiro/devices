@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import Field
 from starlette import status
 
@@ -13,7 +13,6 @@ from app.application.measurement.ingest_measurements import (
     IngestMeasurementsCommand,
     MeasurementItem,
 )
-from app.domain.exceptions import DeviceNotFoundError, InactiveDeviceError
 from app.infrastructure.db.session import DbSessionDep
 from app.schemas.device import DeviceActivationUpdate
 from app.schemas.measurement import MeasurementIngestItem
@@ -41,18 +40,12 @@ async def update_device_activation(
     - Returns **404** if the device does not exist.
     """
     async with db.begin():
-        try:
-            await handler.handle(
-                UpdateDeviceActivationCommand(
-                    device_id=device_id,
-                    is_active=payload.is_active,
-                )
+        await handler.handle(
+            UpdateDeviceActivationCommand(
+                device_id=device_id,
+                is_active=payload.is_active,
             )
-        except DeviceNotFoundError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(exc),
-            ) from exc
+        )
 
 
 @router.post(
@@ -77,29 +70,18 @@ async def ingest_measurements(
     - Returns **422** if the device is inactive or payload validation fails.
     """
     async with db.begin():
-        try:
-            await handler.handle(
-                IngestMeasurementsCommand(
-                    device_id=device_id,
-                    measurements=[
-                        MeasurementItem(
-                            measurement_id=item.measurement_id,
-                            type=item.type,
-                            value=item.value,
-                            unit=item.unit,
-                            timestamp=item.timestamp,
-                        )
-                        for item in payload
-                    ],
-                )
+        await handler.handle(
+            IngestMeasurementsCommand(
+                device_id=device_id,
+                measurements=[
+                    MeasurementItem(
+                        measurement_id=item.measurement_id,
+                        type=item.type,
+                        value=item.value,
+                        unit=item.unit,
+                        timestamp=item.timestamp,
+                    )
+                    for item in payload
+                ],
             )
-        except DeviceNotFoundError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(exc),
-            ) from exc
-        except InactiveDeviceError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=str(exc),
-            ) from exc
+        )

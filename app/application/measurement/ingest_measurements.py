@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -15,6 +16,8 @@ from app.domain.value_objects import (
     MeasurementValue,
     Timestamp,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -54,6 +57,8 @@ class IngestMeasurementsHandler:
         Returns:
             The number of newly persisted measurements.
         """
+        logger.debug("IngestMeasurements: device_id=%s, batch_size=%d", command.device_id, len(command.measurements))
+
         device = await self.device_repository.get_by_id(command.device_id)
         if device is None:
             raise DeviceNotFoundError(

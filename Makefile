@@ -1,9 +1,12 @@
-.PHONY: help up down restart logs ps shell db-shell test test-v migrate migration rollback clean
+.PHONY: help setup up down restart logs ps shell db-shell test test-v migrate migration rollback clean
 
 .DEFAULT_GOAL := help
 
 help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+setup: ## Copy .env.example to .env (safe to re-run, will not overwrite)
+	cp -n .env.example .env
 
 # --- Containers ---
 up: ## Start all services in the background
@@ -29,7 +32,7 @@ shell: ## Open an interactive bash shell inside the API container
 	docker compose exec api bash
 
 db-shell: ## Open PostgreSQL interactive shell (psql)
-	docker compose exec db psql -U api_user -d api_database
+	docker compose exec db sh -c 'psql -U $$POSTGRES_USER -d $$POSTGRES_DB'
 
 # --- Testing ---
 test: ## Run test suite inside container

@@ -6,10 +6,10 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 setup: ## Copy .env.example to .env (safe to re-run, will not overwrite)
-	cp -n .env.example .env
+	cp -n .env.example .env 2>/dev/null || true
 
 # --- Containers ---
-up: ## Start all services in the background
+up: setup ## Start all services in the background
 	docker compose up -d
 
 down: ## Stop all services

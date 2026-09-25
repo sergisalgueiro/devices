@@ -32,6 +32,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - TZ=UTC
       - LOG_LEVEL=${LOG_LEVEL}
+      - AUTO_MIGRATE=true
     volumes:
       # Map the local directory to the container for hot-reloading
       - .:/project

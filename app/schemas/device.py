@@ -35,14 +35,14 @@ class DeviceResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID
-    serial_number: str
-    customer_id: UUID | None
-    status: str
-    is_active: bool
-    timezone: str | None = None
-    created_at: datetime
-    updated_at: datetime
+    id: UUID = Field(description="Unique device identifier")
+    serial_number: str = Field(description="Unique device serial number")
+    customer_id: UUID | None = Field(description="ID of the assigned customer; null if unassigned")
+    status: str = Field(description="Device lifecycle status (e.g. 'unassigned', 'assigned')")
+    is_active: bool = Field(description="Whether the device is active and can ingest measurements")
+    timezone: str | None = Field(default=None, description="IANA Time Zone identifier assigned to this device")
+    created_at: datetime = Field(description="UTC timestamp when the device was registered")
+    updated_at: datetime = Field(description="UTC timestamp of the last update")
 
     @model_validator(mode="before")
     @classmethod

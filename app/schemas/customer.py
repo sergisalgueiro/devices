@@ -57,13 +57,13 @@ class CustomerResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID
-    name: str
-    email: EmailStr
-    language: str | None = None
-    country: str | None = None
-    timezone: str | None = None
-    created_at: datetime
+    id: UUID = Field(description="Unique customer identifier")
+    name: str = Field(description="Customer name")
+    email: EmailStr = Field(description="Customer email address")
+    language: str | None = Field(default=None, description="ISO 639-1 2-letter language code")
+    country: str | None = Field(default=None, description="ISO 3166-1 alpha-2 country code")
+    timezone: str | None = Field(default=None, description="IANA Time Zone identifier")
+    created_at: datetime = Field(description="UTC timestamp when the customer was created")
 
     @model_validator(mode="before")
     @classmethod
@@ -82,6 +82,6 @@ class CustomerResponse(BaseModel):
 class PaginatedCustomersResponse(BaseModel):
     """Paginated list of customers."""
 
-    items: list[CustomerResponse]
-    next_cursor: str | None
-    has_more: bool
+    items: list[CustomerResponse] = Field(description="Customers on this page")
+    next_cursor: str | None = Field(description="Opaque cursor to pass as `cursor` to retrieve the next page; null if no more pages")
+    has_more: bool = Field(description="Whether additional pages exist")

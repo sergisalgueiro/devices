@@ -22,12 +22,12 @@ class MeasurementResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID
-    device_id: UUID
-    type: str
-    value: float
-    unit: str
-    timestamp: datetime
+    id: UUID = Field(description="Unique measurement identifier")
+    device_id: UUID = Field(description="ID of the device that produced this measurement")
+    type: str = Field(description="Measurement type (e.g. 'temperature', 'energy')")
+    value: float = Field(description="Numeric measurement value")
+    unit: str = Field(description="Unit of measurement (e.g. '°C', 'kWh')")
+    timestamp: datetime = Field(description="UTC timestamp when the measurement was recorded")
 
     @model_validator(mode="before")
     @classmethod
@@ -46,6 +46,6 @@ class MeasurementResponse(BaseModel):
 class PaginatedMeasurementsResponse(BaseModel):
     """Paginated list of measurements."""
 
-    items: list[MeasurementResponse]
-    next_cursor: str | None
-    has_more: bool
+    items: list[MeasurementResponse] = Field(description="Measurements on this page")
+    next_cursor: str | None = Field(description="Opaque cursor to pass as `cursor` to retrieve the next page; null if no more pages")
+    has_more: bool = Field(description="Whether additional pages exist")

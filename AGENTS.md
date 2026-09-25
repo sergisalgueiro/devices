@@ -85,7 +85,19 @@ Domain entities represent core business concepts with distinct identity and life
 
 ---
 
-## 6. FastAPI Skill
+## 6. Endpoint Documentation
+
+After any change that creates or modifies an HTTP endpoint, regenerate the OpenAPI spec and include it in the same commit:
+
+```bash
+make openapi
+```
+
+This overwrites `docs/openapi.json` with the current spec exported from the running API (`http://localhost:8000/openapi.json`). The API container must be running (`make up`) before executing this command.
+
+---
+
+## 7. FastAPI Skill
 
 **Always activate the `fastapi` skill** (located at `.agents/skills/fastapi/SKILL.md`) when working on any of the following:
 

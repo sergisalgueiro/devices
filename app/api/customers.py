@@ -21,7 +21,7 @@ from app.schemas.customer import CustomerCreate, CustomerResponse, PaginatedCust
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, summary="Create a customer")
 async def create_customer(
     payload: CustomerCreate,
     db: DbSessionDep,
@@ -47,7 +47,7 @@ async def create_customer(
     return CustomerResponse.model_validate(customer)
 
 
-@router.get("")
+@router.get("", summary="List customers")
 async def list_customers(
     handler: ListCustomersHandlerDep,
     email: Annotated[EmailStr | None, Query(description="Filter by exact email address")] = None,
@@ -85,7 +85,7 @@ async def list_customers(
     )
 
 
-@router.get("/{customer_id}")
+@router.get("/{customer_id}", summary="Get a customer")
 async def get_customer(
     customer_id: UUID,
     handler: GetCustomerHandlerDep,

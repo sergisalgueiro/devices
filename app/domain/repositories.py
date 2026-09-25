@@ -43,3 +43,11 @@ class MeasurementRepository(ABC):
     async def save(self, measurement: Measurement) -> None:
         """Persist a new Measurement."""
         ...
+
+    @abstractmethod
+    async def save_batch(self, measurements: list[Measurement]) -> int:
+        """Persist a batch of measurements, skipping duplicates by id.
+
+        Returns the number of newly inserted measurements.
+        """
+        ...

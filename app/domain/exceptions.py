@@ -67,3 +67,6 @@ class InvalidMeasurementUnitError(DomainValidationError):
 
 class DeviceNotFoundError(DomainError):
     """Raised when a device cannot be found by its identifier."""
+
+class InactiveDeviceError(DomainError):
+    """Raised when an operation requires an active device but the device is inactive."""

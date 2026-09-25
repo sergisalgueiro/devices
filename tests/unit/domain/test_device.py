@@ -268,23 +268,24 @@ class TestDeviceEntity:
         assert isinstance(device.updated_at, UpdatedAt)
         assert device.updated_at.value.tzinfo == timezone.utc
 
-    def test_set_timezone(self):
-        device = Device(
-            serial_number=SerialNumber("SN-100"),
-            customer_id=CustomerId(),
-        )
+    def test_assign_customer_sets_timezone(self):
+        device = Device(serial_number=SerialNumber("SN-100"))
         assert device.timezone is None
         initial_updated_at = device.updated_at.value
 
-        device.set_timezone(TimeZone("UTC"))
+        customer_id = CustomerId()
+        device.assign_customer(customer_id, timezone=TimeZone("UTC"))
+        assert device.customer_id == customer_id
         assert device.timezone == TimeZone("UTC")
-        assert device.timezone.value == "UTC"
         assert device.updated_at.value >= initial_updated_at
 
-        utc_updated_at = device.updated_at.value
-        device.set_timezone(None)
+    def test_unassign_customer_clears_timezone(self):
+        device = Device(serial_number=SerialNumber("SN-100"))
+        device.assign_customer(CustomerId(), timezone=TimeZone("UTC"))
+
+        device.unassign_customer()
+        assert device.customer_id is None
         assert device.timezone is None
-        assert device.updated_at.value >= utc_updated_at
 
     def test_connect_and_disconnect(self):
         device = Device(
@@ -313,15 +314,16 @@ class TestDeviceEntity:
         assert device.status == DeviceStatus.decommissioned()
         assert device.status.value == "decommissioned"
 
-    def test_reassign_customer(self):
-        old_customer_id = CustomerId()
-        new_customer_id = CustomerId()
-        device = Device(
-            serial_number=SerialNumber("SN-100"),
-            customer_id=old_customer_id,
-        )
+    def test_assign_customer(self):
+        customer_id = CustomerId()
+        device = Device(serial_number=SerialNumber("SN-100"))
+        assert device.customer_id is None
 
-        device.reassign_customer(new_customer_id)
+        device.assign_customer(customer_id)
+        assert device.customer_id == customer_id
+
+        new_customer_id = CustomerId()
+        device.assign_customer(new_customer_id)
         assert device.customer_id == new_customer_id
 
     def test_update_status(self):

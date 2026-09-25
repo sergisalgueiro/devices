@@ -8,8 +8,10 @@ from fastapi import APIRouter, Query
 from pydantic import Field
 from starlette import status
 
-from app.api.dependencies import CreateDeviceHandlerDep, IngestMeasurementsHandlerDep, ListMeasurementsHandlerDep, UpdateDeviceActivationHandlerDep
+from app.api.dependencies import AssignDeviceCustomerHandlerDep, CreateDeviceHandlerDep, IngestMeasurementsHandlerDep, ListMeasurementsHandlerDep, UnassignDeviceCustomerHandlerDep, UpdateDeviceActivationHandlerDep
+from app.application.device.assign_device_customer import AssignDeviceCustomerCommand
 from app.application.device.create_device import CreateDeviceCommand
+from app.application.device.unassign_device_customer import UnassignDeviceCustomerCommand
 from app.application.device.update_device_activation import UpdateDeviceActivationCommand
 from app.application.measurement.ingest_measurements import (
     IngestMeasurementsCommand,
@@ -17,7 +19,7 @@ from app.application.measurement.ingest_measurements import (
 )
 from app.application.measurement.list_measurements import ListMeasurementsQuery
 from app.infrastructure.db.session import DbSessionDep
-from app.schemas.device import DeviceActivationUpdate, DeviceCreate, DeviceResponse
+from app.schemas.device import AssignCustomerRequest, DeviceActivationUpdate, DeviceCreate, DeviceResponse
 from app.schemas.measurement import MeasurementIngestItem, MeasurementResponse, PaginatedMeasurementsResponse
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
@@ -34,22 +36,63 @@ async def create_device(
     handler: CreateDeviceHandlerDep,
 ) -> DeviceResponse:
     """
-    Register a new device for a customer.
+    Register a new device. The device is created without a customer assignment.
 
     - `serial_number` must be unique across all devices.
     - Returns **409** if the serial number is already registered.
-    - Returns **404** if the customer does not exist.
+    - Returns **422** if payload validation fails.
+    """
+    async with db.begin():
+        device = await handler.handle(CreateDeviceCommand(serial_number=payload.serial_number))
+    return DeviceResponse.model_validate(device)
+
+
+@router.put(
+    "/{device_id}/customer",
+    summary="Assign device to a customer",
+)
+async def assign_device_customer(
+    device_id: UUID,
+    payload: AssignCustomerRequest,
+    db: DbSessionDep,
+    handler: AssignDeviceCustomerHandlerDep,
+) -> DeviceResponse:
+    """
+    Assign a device to a customer, optionally setting a timezone.
+
+    - Idempotent: re-assigning to the same or a different customer is always accepted.
+    - Returns **404** if the device or customer does not exist.
     - Returns **422** if payload validation fails.
     """
     async with db.begin():
         device = await handler.handle(
-            CreateDeviceCommand(
-                serial_number=payload.serial_number,
+            AssignDeviceCustomerCommand(
+                device_id=device_id,
                 customer_id=payload.customer_id,
                 timezone=str(payload.timezone) if payload.timezone is not None else None,
             )
         )
     return DeviceResponse.model_validate(device)
+
+
+@router.delete(
+    "/{device_id}/customer",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Unassign device from its customer",
+)
+async def unassign_device_customer(
+    device_id: UUID,
+    db: DbSessionDep,
+    handler: UnassignDeviceCustomerHandlerDep,
+) -> None:
+    """
+    Remove the customer assignment from a device and clear its timezone.
+
+    - Idempotent: unassigning an already-unassigned device is a successful no-op.
+    - Returns **404** if the device does not exist.
+    """
+    async with db.begin():
+        await handler.handle(UnassignDeviceCustomerCommand(device_id=device_id))
 
 
 @router.patch(

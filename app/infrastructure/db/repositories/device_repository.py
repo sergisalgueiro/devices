@@ -69,7 +69,7 @@ class SqlAlchemyDeviceRepository(DeviceRepository):
             logger.debug("UPDATE device: id=%s", device.id.value)
 
         row.serial_number = device.serial_number.value
-        row.customer_id = device.customer_id.value
+        row.customer_id = device.customer_id.value if device.customer_id is not None else None
         row.status = device.status.value
         row.is_active = device.is_active
         row.timezone = device.timezone.value if device.timezone is not None else None
@@ -85,7 +85,7 @@ class SqlAlchemyDeviceRepository(DeviceRepository):
         return Device(
             id=DeviceId(row.id),
             serial_number=SerialNumber(row.serial_number),
-            customer_id=CustomerId(row.customer_id),
+            customer_id=CustomerId(row.customer_id) if row.customer_id is not None else None,
             status=DeviceStatus(row.status),
             is_active=row.is_active,
             timezone=TimeZone(row.timezone) if row.timezone is not None else None,

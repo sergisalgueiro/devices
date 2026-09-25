@@ -18,7 +18,12 @@ class DeviceCreate(BaseModel):
     """Schema for creating a new device."""
 
     serial_number: str = Field(..., min_length=1, max_length=100, description="Unique device serial number")
-    customer_id: UUID = Field(..., description="ID of the customer this device belongs to")
+
+
+class AssignCustomerRequest(BaseModel):
+    """Schema for assigning a device to a customer."""
+
+    customer_id: UUID = Field(..., description="ID of the customer to assign this device to")
     timezone: TimeZoneName | None = Field(
         default=None,
         description="IANA Time Zone identifier (e.g., 'Europe/Madrid', 'UTC')",
@@ -32,7 +37,7 @@ class DeviceResponse(BaseModel):
 
     id: UUID
     serial_number: str
-    customer_id: UUID
+    customer_id: UUID | None
     status: str
     is_active: bool
     timezone: str | None = None

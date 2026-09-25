@@ -7,7 +7,9 @@ from fastapi import Depends
 from app.application.customer.create_customer import CreateCustomerHandler
 from app.application.customer.get_customer import GetCustomerHandler
 from app.application.customer.list_customers import ListCustomersHandler
+from app.application.device.assign_device_customer import AssignDeviceCustomerHandler
 from app.application.device.create_device import CreateDeviceHandler
+from app.application.device.unassign_device_customer import UnassignDeviceCustomerHandler
 from app.application.device.update_device_activation import UpdateDeviceActivationHandler
 from app.application.measurement.ingest_measurements import IngestMeasurementsHandler
 from app.application.measurement.list_measurements import ListMeasurementsHandler
@@ -28,16 +30,36 @@ DeviceRepositoryDep = Annotated[DeviceRepository, Depends(get_device_repository)
 
 def get_create_device_handler(
     device_repository: DeviceRepositoryDep,
-    customer_repository: CustomerRepositoryDep,
 ) -> CreateDeviceHandler:
     """Dependency provider returning the CreateDeviceHandler use case."""
-    return CreateDeviceHandler(
+    return CreateDeviceHandler(device_repository=device_repository)
+
+
+CreateDeviceHandlerDep = Annotated[CreateDeviceHandler, Depends(get_create_device_handler)]
+
+
+def get_assign_device_customer_handler(
+    device_repository: DeviceRepositoryDep,
+    customer_repository: CustomerRepositoryDep,
+) -> AssignDeviceCustomerHandler:
+    """Dependency provider returning the AssignDeviceCustomerHandler use case."""
+    return AssignDeviceCustomerHandler(
         device_repository=device_repository,
         customer_repository=customer_repository,
     )
 
 
-CreateDeviceHandlerDep = Annotated[CreateDeviceHandler, Depends(get_create_device_handler)]
+AssignDeviceCustomerHandlerDep = Annotated[AssignDeviceCustomerHandler, Depends(get_assign_device_customer_handler)]
+
+
+def get_unassign_device_customer_handler(
+    device_repository: DeviceRepositoryDep,
+) -> UnassignDeviceCustomerHandler:
+    """Dependency provider returning the UnassignDeviceCustomerHandler use case."""
+    return UnassignDeviceCustomerHandler(device_repository=device_repository)
+
+
+UnassignDeviceCustomerHandlerDep = Annotated[UnassignDeviceCustomerHandler, Depends(get_unassign_device_customer_handler)]
 
 
 def get_update_device_activation_handler(

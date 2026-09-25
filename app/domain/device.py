@@ -18,14 +18,13 @@ class Device:
     """Domain entity representing an IoT Device composed strictly of Value Objects."""
 
     serial_number: SerialNumber
-    customer_id: CustomerId
+    customer_id: CustomerId | None = None
     id: DeviceId = field(default_factory=DeviceId)
     status: DeviceStatus = field(default_factory=DeviceStatus)
     is_active: bool = True
     timezone: TimeZone | None = None
     created_at: CreatedAt = field(default_factory=CreatedAt)
     updated_at: UpdatedAt = field(default_factory=UpdatedAt)
-
 
     def set_active(self, is_active: bool) -> None:
         """Update activation status. Idempotent no-op if already in the target state."""
@@ -51,16 +50,19 @@ class Device:
         """Decommission the IoT device."""
         self.update_status(DeviceStatus.decommissioned())
 
-    def reassign_customer(self, new_customer_id: CustomerId) -> None:
-        """Reassign device to another customer and refresh the updated_at timestamp."""
-        self.customer_id = new_customer_id
+    def assign_customer(self, customer_id: CustomerId, timezone: TimeZone | None = None) -> None:
+        """Assign device to a customer, optionally setting a timezone."""
+        self.customer_id = customer_id
+        self.timezone = timezone
         self.touch()
 
-    def set_timezone(self, new_timezone: TimeZone | None) -> None:
-        """Update the device timezone and refresh the updated_at timestamp."""
-        self.timezone = new_timezone
+    def unassign_customer(self) -> None:
+        """Remove customer assignment and clear timezone. Idempotent."""
+        if self.customer_id is None:
+            return
+        self.customer_id = None
+        self.timezone = None
         self.touch()
-
 
     def touch(self) -> None:
         """Update the updated_at timestamp to current UTC time."""

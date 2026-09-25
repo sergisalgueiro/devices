@@ -16,10 +16,10 @@ class DeviceModel(Base):
 
     id: Mapped[UUID] = mapped_column(sa.UUID(as_uuid=True), primary_key=True)
     serial_number: Mapped[str] = mapped_column(sa.String(100), nullable=False, unique=True)
-    customer_id: Mapped[UUID] = mapped_column(
+    customer_id: Mapped[UUID | None] = mapped_column(
         sa.UUID(as_uuid=True),
         sa.ForeignKey("customers.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     status: Mapped[str] = mapped_column(sa.String(50), nullable=False)

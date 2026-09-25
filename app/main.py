@@ -6,8 +6,16 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette import status
 
+from app.api.customers import router as customers_router
 from app.api.devices import router as devices_router
-from app.domain.exceptions import DeviceNotFoundError, DomainError, DomainValidationError, InactiveDeviceError
+from app.domain.exceptions import (
+    CustomerEmailAlreadyExistsError,
+    CustomerNotFoundError,
+    DeviceNotFoundError,
+    DomainError,
+    DomainValidationError,
+    InactiveDeviceError,
+)
 from app.infrastructure.db.session import engine
 from app.infrastructure.logging import configure_logging
 
@@ -62,6 +70,19 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
 
 
+@app.exception_handler(CustomerNotFoundError)
+async def customer_not_found_handler(request: Request, exc: CustomerNotFoundError) -> JSONResponse:
+    logger.warning("Customer not found: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
+
+
+@app.exception_handler(CustomerEmailAlreadyExistsError)
+async def customer_email_exists_handler(request: Request, exc: CustomerEmailAlreadyExistsError) -> JSONResponse:
+    logger.warning("Customer email conflict: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+app.include_router(customers_router)
 app.include_router(devices_router)
 
 

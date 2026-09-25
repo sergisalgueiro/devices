@@ -68,5 +68,14 @@ class InvalidMeasurementUnitError(DomainValidationError):
 class DeviceNotFoundError(DomainError):
     """Raised when a device cannot be found by its identifier."""
 
+
 class InactiveDeviceError(DomainError):
     """Raised when an operation requires an active device but the device is inactive."""
+
+
+class CustomerNotFoundError(DomainError):
+    """Raised when a customer cannot be found by its identifier."""
+
+
+class CustomerEmailAlreadyExistsError(DomainError):
+    """Raised when a customer with the given email already exists."""

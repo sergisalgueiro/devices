@@ -77,3 +77,11 @@ class CustomerResponse(BaseModel):
                 )
             }
         return data
+
+
+class PaginatedCustomersResponse(BaseModel):
+    """Paginated list of customers."""
+
+    items: list[CustomerResponse]
+    next_cursor: str | None
+    has_more: bool

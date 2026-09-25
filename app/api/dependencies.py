@@ -7,6 +7,7 @@ from fastapi import Depends
 from app.application.customer.create_customer import CreateCustomerHandler
 from app.application.customer.get_customer import GetCustomerHandler
 from app.application.customer.list_customers import ListCustomersHandler
+from app.application.device.create_device import CreateDeviceHandler
 from app.application.device.update_device_activation import UpdateDeviceActivationHandler
 from app.application.measurement.ingest_measurements import IngestMeasurementsHandler
 from app.application.measurement.list_measurements import ListMeasurementsHandler
@@ -23,6 +24,20 @@ def get_device_repository(db: DbSessionDep) -> DeviceRepository:
 
 
 DeviceRepositoryDep = Annotated[DeviceRepository, Depends(get_device_repository)]
+
+
+def get_create_device_handler(
+    device_repository: DeviceRepositoryDep,
+    customer_repository: CustomerRepositoryDep,
+) -> CreateDeviceHandler:
+    """Dependency provider returning the CreateDeviceHandler use case."""
+    return CreateDeviceHandler(
+        device_repository=device_repository,
+        customer_repository=customer_repository,
+    )
+
+
+CreateDeviceHandlerDep = Annotated[CreateDeviceHandler, Depends(get_create_device_handler)]
 
 
 def get_update_device_activation_handler(

@@ -8,7 +8,8 @@ from fastapi import APIRouter, Query
 from pydantic import Field
 from starlette import status
 
-from app.api.dependencies import IngestMeasurementsHandlerDep, ListMeasurementsHandlerDep, UpdateDeviceActivationHandlerDep
+from app.api.dependencies import CreateDeviceHandlerDep, IngestMeasurementsHandlerDep, ListMeasurementsHandlerDep, UpdateDeviceActivationHandlerDep
+from app.application.device.create_device import CreateDeviceCommand
 from app.application.device.update_device_activation import UpdateDeviceActivationCommand
 from app.application.measurement.ingest_measurements import (
     IngestMeasurementsCommand,
@@ -16,10 +17,39 @@ from app.application.measurement.ingest_measurements import (
 )
 from app.application.measurement.list_measurements import ListMeasurementsQuery
 from app.infrastructure.db.session import DbSessionDep
-from app.schemas.device import DeviceActivationUpdate
+from app.schemas.device import DeviceActivationUpdate, DeviceCreate, DeviceResponse
 from app.schemas.measurement import MeasurementIngestItem, MeasurementResponse, PaginatedMeasurementsResponse
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
+
+
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new device",
+)
+async def create_device(
+    payload: DeviceCreate,
+    db: DbSessionDep,
+    handler: CreateDeviceHandlerDep,
+) -> DeviceResponse:
+    """
+    Register a new device for a customer.
+
+    - `serial_number` must be unique across all devices.
+    - Returns **409** if the serial number is already registered.
+    - Returns **404** if the customer does not exist.
+    - Returns **422** if payload validation fails.
+    """
+    async with db.begin():
+        device = await handler.handle(
+            CreateDeviceCommand(
+                serial_number=payload.serial_number,
+                customer_id=payload.customer_id,
+                timezone=str(payload.timezone) if payload.timezone is not None else None,
+            )
+        )
+    return DeviceResponse.model_validate(device)
 
 
 @router.patch(

@@ -41,6 +41,19 @@ class SqlAlchemyDeviceRepository(DeviceRepository):
         logger.debug("Device found: id=%s", device_id)
         return self._to_domain(row)
 
+    async def get_by_serial_number(self, serial_number: str) -> Device | None:
+        """Return the Device with the given serial number, or None if not found."""
+        logger.debug("SELECT device: serial_number=%s", serial_number)
+        result = await self._session.execute(
+            select(DeviceModel).where(DeviceModel.serial_number == serial_number)
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            logger.debug("Device not found in DB: serial_number=%s", serial_number)
+            return None
+        logger.debug("Device found: serial_number=%s", serial_number)
+        return self._to_domain(row)
+
     async def save(self, device: Device) -> None:
         """Persist a new or updated Device."""
         result = await self._session.execute(

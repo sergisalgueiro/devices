@@ -15,6 +15,7 @@ from app.domain.exceptions import (
     DomainError,
     DomainValidationError,
     InactiveDeviceError,
+    SerialNumberAlreadyExistsError,
 )
 from app.infrastructure.db.session import engine
 from app.infrastructure.logging import configure_logging
@@ -79,6 +80,12 @@ async def customer_not_found_handler(request: Request, exc: CustomerNotFoundErro
 @app.exception_handler(CustomerEmailAlreadyExistsError)
 async def customer_email_exists_handler(request: Request, exc: CustomerEmailAlreadyExistsError) -> JSONResponse:
     logger.warning("Customer email conflict: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+@app.exception_handler(SerialNumberAlreadyExistsError)
+async def serial_number_exists_handler(request: Request, exc: SerialNumberAlreadyExistsError) -> JSONResponse:
+    logger.warning("Device serial number conflict: %s %s: %s", request.method, request.url.path, exc)
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
 
 

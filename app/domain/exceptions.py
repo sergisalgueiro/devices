@@ -79,3 +79,7 @@ class CustomerNotFoundError(DomainError):
 
 class CustomerEmailAlreadyExistsError(DomainError):
     """Raised when a customer with the given email already exists."""
+
+
+class SerialNumberAlreadyExistsError(DomainError):
+    """Raised when a device with the given serial number already exists."""

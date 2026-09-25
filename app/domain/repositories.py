@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Generic, TypeVar
 from uuid import UUID
 
@@ -17,6 +18,13 @@ class PaginatedResult(Generic[T]):
     items: list[T]
     next_cursor: str | None = None
     has_more: bool = False
+
+
+@dataclass(frozen=True)
+class MeasurementListFilters:
+    type: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -86,4 +94,17 @@ class MeasurementRepository(ABC):
 
         Returns the number of newly inserted measurements.
         """
+        ...
+
+    @abstractmethod
+    async def list(
+        self,
+        device_id: UUID,
+        filters: MeasurementListFilters,
+        sort_field: str,
+        sort_direction: str,
+        limit: int,
+        cursor: str | None,
+    ) -> PaginatedResult[Measurement]:
+        """Return a paginated, optionally filtered list of Measurements for a device."""
         ...

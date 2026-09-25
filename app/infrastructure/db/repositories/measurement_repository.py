@@ -1,15 +1,36 @@
 from __future__ import annotations
 
+import base64
+import json
 import logging
+from datetime import datetime
+from uuid import UUID
 
+from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.measurement import Measurement
-from app.domain.repositories import MeasurementRepository
+from app.domain.repositories import MeasurementListFilters, MeasurementRepository, PaginatedResult
+from app.domain.value_objects import DeviceId, MeasurementId, MeasurementType, MeasurementUnit, MeasurementValue, Timestamp
 from app.infrastructure.db.models.measurement import MeasurementModel
 
 logger = logging.getLogger(__name__)
+
+
+def _encode_cursor(sort_direction: str, timestamp: datetime, row_id: UUID) -> str:
+    payload = {"f": "timestamp", "d": sort_direction, "v": timestamp.isoformat(), "id": str(row_id)}
+    encoded = base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode()
+    return encoded.rstrip("=")
+
+
+def _decode_cursor(cursor: str) -> tuple[str, datetime, UUID]:
+    padded = cursor + "=" * (-len(cursor) % 4)
+    payload = json.loads(base64.urlsafe_b64decode(padded).decode())
+    sort_direction: str = payload["d"]
+    cursor_timestamp = datetime.fromisoformat(payload["v"])
+    cursor_id = UUID(payload["id"])
+    return sort_direction, cursor_timestamp, cursor_id
 
 
 class SqlAlchemyMeasurementRepository(MeasurementRepository):
@@ -68,3 +89,76 @@ class SqlAlchemyMeasurementRepository(MeasurementRepository):
             len(measurements), new_count, len(measurements) - new_count,
         )
         return new_count
+
+    async def list(
+        self,
+        device_id: UUID,
+        filters: MeasurementListFilters,
+        sort_field: str,
+        sort_direction: str,
+        limit: int,
+        cursor: str | None,
+    ) -> PaginatedResult[Measurement]:
+        logger.debug(
+            "LIST measurements: device_id=%s, sort=%s/%s, limit=%d, cursor=%s",
+            device_id, sort_field, sort_direction, limit, cursor,
+        )
+
+        cursor_timestamp: datetime | None = None
+        cursor_id: UUID | None = None
+        if cursor is not None:
+            sort_direction, cursor_timestamp, cursor_id = _decode_cursor(cursor)
+
+        stmt = select(MeasurementModel).where(MeasurementModel.device_id == device_id)
+
+        if filters.type is not None:
+            stmt = stmt.where(MeasurementModel.type == filters.type)
+        if filters.start_time is not None:
+            stmt = stmt.where(MeasurementModel.timestamp >= filters.start_time)
+        if filters.end_time is not None:
+            stmt = stmt.where(MeasurementModel.timestamp < filters.end_time)
+
+        if cursor_timestamp is not None and cursor_id is not None:
+            col = MeasurementModel.timestamp
+            if sort_direction == "asc":
+                stmt = stmt.where(
+                    or_(col > cursor_timestamp, and_(col == cursor_timestamp, MeasurementModel.id > cursor_id))
+                )
+            else:
+                stmt = stmt.where(
+                    or_(col < cursor_timestamp, and_(col == cursor_timestamp, MeasurementModel.id < cursor_id))
+                )
+
+        if sort_direction == "asc":
+            stmt = stmt.order_by(MeasurementModel.timestamp.asc(), MeasurementModel.id.asc())
+        else:
+            stmt = stmt.order_by(MeasurementModel.timestamp.desc(), MeasurementModel.id.desc())
+
+        stmt = stmt.limit(limit + 1)
+        result = await self._session.execute(stmt)
+        rows = list(result.scalars().all())
+
+        has_more = len(rows) > limit
+        items = rows[:limit]
+
+        next_cursor: str | None = None
+        if has_more and items:
+            last = items[-1]
+            next_cursor = _encode_cursor(sort_direction, last.timestamp, last.id)
+
+        return PaginatedResult(
+            items=[self._to_domain(row) for row in items],
+            next_cursor=next_cursor,
+            has_more=has_more,
+        )
+
+    @staticmethod
+    def _to_domain(row: MeasurementModel) -> Measurement:
+        return Measurement(
+            id=MeasurementId(row.id),
+            device_id=DeviceId(row.device_id),
+            type=MeasurementType(row.type),
+            value=MeasurementValue(row.value),
+            unit=MeasurementUnit(row.unit),
+            timestamp=Timestamp(row.timestamp),
+        )

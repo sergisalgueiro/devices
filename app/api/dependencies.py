@@ -9,6 +9,7 @@ from app.application.customer.get_customer import GetCustomerHandler
 from app.application.customer.list_customers import ListCustomersHandler
 from app.application.device.update_device_activation import UpdateDeviceActivationHandler
 from app.application.measurement.ingest_measurements import IngestMeasurementsHandler
+from app.application.measurement.list_measurements import ListMeasurementsHandler
 from app.domain.repositories import CustomerRepository, DeviceRepository, MeasurementRepository
 from app.infrastructure.db.repositories.customer_repository import SqlAlchemyCustomerRepository
 from app.infrastructure.db.repositories.device_repository import SqlAlchemyDeviceRepository
@@ -59,6 +60,23 @@ def get_ingest_measurements_handler(
 IngestMeasurementsHandlerDep = Annotated[
     IngestMeasurementsHandler,
     Depends(get_ingest_measurements_handler),
+]
+
+
+def get_list_measurements_handler(
+    device_repository: DeviceRepositoryDep,
+    measurement_repository: MeasurementRepositoryDep,
+) -> ListMeasurementsHandler:
+    """Dependency provider returning the ListMeasurementsHandler use case."""
+    return ListMeasurementsHandler(
+        device_repository=device_repository,
+        measurement_repository=measurement_repository,
+    )
+
+
+ListMeasurementsHandlerDep = Annotated[
+    ListMeasurementsHandler,
+    Depends(get_list_measurements_handler),
 ]
 
 

@@ -1,21 +1,23 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import Field
 from starlette import status
 
-from app.api.dependencies import IngestMeasurementsHandlerDep, UpdateDeviceActivationHandlerDep
+from app.api.dependencies import IngestMeasurementsHandlerDep, ListMeasurementsHandlerDep, UpdateDeviceActivationHandlerDep
 from app.application.device.update_device_activation import UpdateDeviceActivationCommand
 from app.application.measurement.ingest_measurements import (
     IngestMeasurementsCommand,
     MeasurementItem,
 )
+from app.application.measurement.list_measurements import ListMeasurementsQuery
 from app.infrastructure.db.session import DbSessionDep
 from app.schemas.device import DeviceActivationUpdate
-from app.schemas.measurement import MeasurementIngestItem
+from app.schemas.measurement import MeasurementIngestItem, MeasurementResponse, PaginatedMeasurementsResponse
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
 
@@ -85,3 +87,43 @@ async def ingest_measurements(
                 ],
             )
         )
+
+
+@router.get(
+    "/{device_id}/measurements",
+    summary="List device measurements",
+)
+async def list_measurements(
+    device_id: UUID,
+    handler: ListMeasurementsHandlerDep,
+    type: Annotated[str | None, Query(description="Filter by exact measurement type")] = None,
+    start_time: Annotated[datetime | None, Query(description="Inclusive lower bound on timestamp (UTC)")] = None,
+    end_time: Annotated[datetime | None, Query(description="Exclusive upper bound on timestamp (UTC)")] = None,
+    sort_dir: Annotated[str, Query(pattern="^(asc|desc)$", description="Sort direction")] = "desc",
+    limit: Annotated[int, Query(ge=1, le=100, description="Maximum results per page")] = 20,
+    cursor: Annotated[str | None, Query(description="Opaque pagination cursor from previous response")] = None,
+) -> PaginatedMeasurementsResponse:
+    """
+    List measurements for a device with optional filters and cursor-based pagination.
+
+    - Results are sorted by timestamp, most recent first by default.
+    - Filters combine with AND logic.
+    - Returns **404** if the device does not exist.
+    - Returns **422** if query parameters fail validation.
+    """
+    result = await handler.handle(
+        ListMeasurementsQuery(
+            device_id=device_id,
+            type=type,
+            start_time=start_time,
+            end_time=end_time,
+            sort_direction=sort_dir,
+            limit=limit,
+            cursor=cursor,
+        )
+    )
+    return PaginatedMeasurementsResponse(
+        items=[MeasurementResponse.model_validate(m) for m in result.items],
+        next_cursor=result.next_cursor,
+        has_more=result.has_more,
+    )

@@ -5,45 +5,44 @@ from uuid import uuid4
 
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.models.customer import CustomerModel
 from app.infrastructure.db.models.device import DeviceModel
 from app.infrastructure.db.models.measurement import MeasurementModel
-from app.infrastructure.db.session import AsyncSessionFactory
 from app.main import app
 
 BASE_URL = "http://test"
 
 
-async def _seed_device(*, is_active: bool = True) -> dict:
+async def _seed_device(session: AsyncSession, *, is_active: bool = True) -> dict:
     customer_id = uuid4()
     device_id = uuid4()
     now = datetime.now(timezone.utc)
-    async with AsyncSessionFactory() as session:
-        async with session.begin():
-            await session.execute(
-                insert(CustomerModel).values(
-                    id=customer_id,
-                    name="Test Customer",
-                    email=f"customer-{customer_id}@test.com",
-                    created_at=now,
-                )
-            )
-            await session.execute(
-                insert(DeviceModel).values(
-                    id=device_id,
-                    serial_number=f"SN-{device_id}",
-                    customer_id=customer_id,
-                    status="OFFLINE",
-                    is_active=is_active,
-                    created_at=now,
-                    updated_at=now,
-                )
-            )
+    await session.execute(
+        insert(CustomerModel).values(
+            id=customer_id,
+            name="Test Customer",
+            email=f"customer-{customer_id}@test.com",
+            created_at=now,
+        )
+    )
+    await session.execute(
+        insert(DeviceModel).values(
+            id=device_id,
+            serial_number=f"SN-{device_id}",
+            customer_id=customer_id,
+            status="OFFLINE",
+            is_active=is_active,
+            created_at=now,
+            updated_at=now,
+        )
+    )
     return {"customer_id": customer_id, "device_id": device_id}
 
 
 async def _seed_measurement(
+    session: AsyncSession,
     device_id,
     *,
     type: str = "temperature",
@@ -53,18 +52,16 @@ async def _seed_measurement(
 ) -> dict:
     measurement_id = uuid4()
     ts = timestamp or datetime.now(timezone.utc)
-    async with AsyncSessionFactory() as session:
-        async with session.begin():
-            await session.execute(
-                insert(MeasurementModel).values(
-                    id=measurement_id,
-                    device_id=device_id,
-                    type=type,
-                    value=value,
-                    unit=unit,
-                    timestamp=ts,
-                )
-            )
+    await session.execute(
+        insert(MeasurementModel).values(
+            id=measurement_id,
+            device_id=device_id,
+            type=type,
+            value=value,
+            unit=unit,
+            timestamp=ts,
+        )
+    )
     return {"measurement_id": measurement_id, "timestamp": ts}
 
 
@@ -79,8 +76,8 @@ async def test_list_measurements_nonexistent_device_returns_404() -> None:
     assert response.status_code == 404
 
 
-async def test_invalid_sort_dir_returns_422() -> None:
-    ids = await _seed_device()
+async def test_invalid_sort_dir_returns_422(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(
             f"/devices/{ids['device_id']}/measurements",
@@ -89,8 +86,8 @@ async def test_invalid_sort_dir_returns_422() -> None:
     assert response.status_code == 422
 
 
-async def test_limit_out_of_range_returns_422() -> None:
-    ids = await _seed_device()
+async def test_limit_out_of_range_returns_422(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(
             f"/devices/{ids['device_id']}/measurements",
@@ -111,8 +108,8 @@ async def test_limit_out_of_range_returns_422() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_list_measurements_empty_device_returns_200() -> None:
-    ids = await _seed_device()
+async def test_list_measurements_empty_device_returns_200(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(f"/devices/{ids['device_id']}/measurements")
     assert response.status_code == 200
@@ -122,11 +119,11 @@ async def test_list_measurements_empty_device_returns_200() -> None:
     assert body["next_cursor"] is None
 
 
-async def test_list_measurements_returns_device_measurements() -> None:
-    ids = await _seed_device()
+async def test_list_measurements_returns_device_measurements(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     device_id = ids["device_id"]
-    await _seed_measurement(device_id)
-    await _seed_measurement(device_id)
+    await _seed_measurement(db_session, device_id)
+    await _seed_measurement(db_session, device_id)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(f"/devices/{device_id}/measurements")
@@ -137,11 +134,11 @@ async def test_list_measurements_returns_device_measurements() -> None:
         assert item["device_id"] == str(device_id)
 
 
-async def test_list_measurements_filters_by_type() -> None:
-    ids = await _seed_device()
+async def test_list_measurements_filters_by_type(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     device_id = ids["device_id"]
-    await _seed_measurement(device_id, type="temperature")
-    await _seed_measurement(device_id, type="humidity")
+    await _seed_measurement(db_session, device_id, type="temperature")
+    await _seed_measurement(db_session, device_id, type="humidity")
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(
@@ -154,13 +151,13 @@ async def test_list_measurements_filters_by_type() -> None:
     assert body["items"][0]["type"] == "temperature"
 
 
-async def test_list_measurements_filters_by_time_range() -> None:
-    ids = await _seed_device()
+async def test_list_measurements_filters_by_time_range(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     device_id = ids["device_id"]
     base = datetime(2026, 1, 10, 12, 0, 0, tzinfo=timezone.utc)
-    await _seed_measurement(device_id, timestamp=base - timedelta(hours=1))
-    await _seed_measurement(device_id, timestamp=base)
-    await _seed_measurement(device_id, timestamp=base + timedelta(hours=1))
+    await _seed_measurement(db_session, device_id, timestamp=base - timedelta(hours=1))
+    await _seed_measurement(db_session, device_id, timestamp=base)
+    await _seed_measurement(db_session, device_id, timestamp=base + timedelta(hours=1))
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(
@@ -175,12 +172,12 @@ async def test_list_measurements_filters_by_time_range() -> None:
     assert len(body["items"]) == 1
 
 
-async def test_list_measurements_default_sort_is_descending() -> None:
-    ids = await _seed_device()
+async def test_list_measurements_default_sort_is_descending(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     device_id = ids["device_id"]
     base = datetime(2026, 1, 15, 0, 0, 0, tzinfo=timezone.utc)
     for i in range(3):
-        await _seed_measurement(device_id, timestamp=base + timedelta(hours=i))
+        await _seed_measurement(db_session, device_id, timestamp=base + timedelta(hours=i))
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(f"/devices/{device_id}/measurements")
@@ -189,12 +186,12 @@ async def test_list_measurements_default_sort_is_descending() -> None:
     assert timestamps == sorted(timestamps, reverse=True)
 
 
-async def test_list_measurements_cursor_pagination() -> None:
-    ids = await _seed_device()
+async def test_list_measurements_cursor_pagination(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     device_id = ids["device_id"]
     base = datetime(2026, 1, 20, 0, 0, 0, tzinfo=timezone.utc)
     for i in range(5):
-        await _seed_measurement(device_id, timestamp=base + timedelta(hours=i))
+        await _seed_measurement(db_session, device_id, timestamp=base + timedelta(hours=i))
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         page1 = await ac.get(
@@ -222,13 +219,13 @@ async def test_list_measurements_cursor_pagination() -> None:
     assert ids1.isdisjoint(ids2)
 
 
-async def test_list_measurements_combined_filters_use_and_logic() -> None:
-    ids = await _seed_device()
+async def test_list_measurements_combined_filters_use_and_logic(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
     device_id = ids["device_id"]
     base = datetime(2026, 1, 25, 12, 0, 0, tzinfo=timezone.utc)
-    await _seed_measurement(device_id, type="temperature", timestamp=base)
-    await _seed_measurement(device_id, type="humidity", timestamp=base)
-    await _seed_measurement(device_id, type="temperature", timestamp=base + timedelta(hours=2))
+    await _seed_measurement(db_session, device_id, type="temperature", timestamp=base)
+    await _seed_measurement(db_session, device_id, type="humidity", timestamp=base)
+    await _seed_measurement(db_session, device_id, type="temperature", timestamp=base + timedelta(hours=2))
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(

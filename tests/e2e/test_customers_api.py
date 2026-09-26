@@ -6,15 +6,16 @@ from uuid import uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.models.customer import CustomerModel
-from app.infrastructure.db.session import AsyncSessionFactory
 from app.main import app
 
 BASE_URL = "http://test"
 
 
 async def _seed_customer(
+    session: AsyncSession,
     *,
     name: str = "Test Customer",
     email: str | None = None,
@@ -23,18 +24,16 @@ async def _seed_customer(
 ) -> dict:
     customer_id = uuid4()
     email = email or f"customer-{customer_id}@test.com"
-    async with AsyncSessionFactory() as session:
-        async with session.begin():
-            await session.execute(
-                insert(CustomerModel).values(
-                    id=customer_id,
-                    name=name,
-                    email=email,
-                    country=country,
-                    language=language,
-                    created_at=datetime.now(timezone.utc),
-                )
-            )
+    await session.execute(
+        insert(CustomerModel).values(
+            id=customer_id,
+            name=name,
+            email=email,
+            country=country,
+            language=language,
+            created_at=datetime.now(timezone.utc),
+        )
+    )
     return {"customer_id": customer_id, "email": email}
 
 
@@ -75,8 +74,8 @@ async def test_create_customer_with_optional_fields_returns_201() -> None:
     assert body["country"] == "US"
 
 
-async def test_create_customer_duplicate_email_returns_409() -> None:
-    seeded = await _seed_customer(email="duplicate@example.com")
+async def test_create_customer_duplicate_email_returns_409(db_session: AsyncSession) -> None:
+    seeded = await _seed_customer(db_session, email="duplicate@example.com")
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.post(
             "/customers",
@@ -114,8 +113,8 @@ async def test_create_customer_missing_required_fields_returns_422() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_get_customer_returns_200() -> None:
-    seeded = await _seed_customer(name="Jane Doe", email=f"jane.{uuid4()}@example.com")
+async def test_get_customer_returns_200(db_session: AsyncSession) -> None:
+    seeded = await _seed_customer(db_session, name="Jane Doe", email=f"jane.{uuid4()}@example.com")
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(f"/customers/{seeded['customer_id']}")
     assert response.status_code == 200
@@ -151,9 +150,9 @@ async def test_list_customers_returns_200_with_empty_list() -> None:
     assert body["next_cursor"] is None
 
 
-async def test_list_customers_returns_seeded_customer() -> None:
+async def test_list_customers_returns_seeded_customer(db_session: AsyncSession) -> None:
     unique_email = f"list-test-{uuid4()}@example.com"
-    await _seed_customer(email=unique_email)
+    await _seed_customer(db_session, email=unique_email)
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get("/customers", params={"email": unique_email})
     assert response.status_code == 200
@@ -162,10 +161,10 @@ async def test_list_customers_returns_seeded_customer() -> None:
     assert body["items"][0]["email"] == unique_email
 
 
-async def test_list_customers_filters_by_country() -> None:
+async def test_list_customers_filters_by_country(db_session: AsyncSession) -> None:
     unique_country = "DE"
     suffix = str(uuid4())[:8]
-    await _seed_customer(email=f"de-user-{suffix}@example.com", country=unique_country)
+    await _seed_customer(db_session, email=f"de-user-{suffix}@example.com", country=unique_country)
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get("/customers", params={"country": unique_country, "email": f"de-user-{suffix}@example.com"})
     assert response.status_code == 200
@@ -174,11 +173,11 @@ async def test_list_customers_filters_by_country() -> None:
     assert all(item["country"] == unique_country for item in body["items"])
 
 
-async def test_list_customers_pagination_cursor_works() -> None:
+async def test_list_customers_pagination_cursor_works(db_session: AsyncSession) -> None:
     suffix = str(uuid4())[:8]
     emails = [f"page-{suffix}-{i}@example.com" for i in range(3)]
     for email in emails:
-        await _seed_customer(email=email, name=f"Page User {suffix}")
+        await _seed_customer(db_session, email=email, name=f"Page User {suffix}")
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         first_response = await ac.get(

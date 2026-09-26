@@ -133,7 +133,7 @@ async def update_device_activation(
     "/{device_id}/measurements",
     status_code=status.HTTP_201_CREATED,
     summary="Ingest device measurements",
-    responses={**Err.not_found, **Err.unprocessable},
+    responses={**Err.not_found, **Err.conflict, **Err.unprocessable},
 )
 async def ingest_measurements(
     device_id: UUID,
@@ -145,11 +145,12 @@ async def ingest_measurements(
     Ingest a batch of measurements for a device.
 
     - The client provides a unique `measurement_id` per measurement for idempotency.
-    - Duplicate `measurement_id` values are silently ignored (no duplicates created).
+    - Duplicate `measurement_id` values are silently ignored (no duplicates created)
     - Accepts between 1 and 1,000 measurements per request. Larger payloads must be chunked.
     - Returns **201 Created** on success (even for fully duplicate batches).
     - Returns **404** if the device does not exist.
-    - Returns **422** if the device is inactive or payload validation fails.
+    - Returns **409** if the device is inactive.
+    - Returns **422** if payload validation fails.
     """
     async with db.begin():
         await handler.handle(

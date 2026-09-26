@@ -122,14 +122,14 @@ async def test_ingest_nonexistent_device_returns_404() -> None:
     assert response.status_code == 404
 
 
-async def test_ingest_inactive_device_returns_422(db_session: AsyncSession) -> None:
+async def test_ingest_inactive_device_returns_409(db_session: AsyncSession) -> None:
     ids = await _seed_device(db_session, is_active=False)
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.post(
             f"/devices/{ids['device_id']}/measurements",
             json=[_measurement_payload()],
         )
-    assert response.status_code == 422
+    assert response.status_code == 409
 
 
 async def test_ingest_invalid_payload_returns_422(db_session: AsyncSession) -> None:

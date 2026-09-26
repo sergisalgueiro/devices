@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 from starlette import status
 
 from app.api.customers import router as customers_router
@@ -51,7 +52,7 @@ async def device_not_found_handler(request: Request, exc: DeviceNotFoundError) -
 @app.exception_handler(InactiveDeviceError)
 async def inactive_device_handler(request: Request, exc: InactiveDeviceError) -> JSONResponse:
     logger.warning("Inactive device: %s %s: %s", request.method, request.url.path, exc)
-    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": str(exc)})
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
 
 
 @app.exception_handler(DomainValidationError)
@@ -90,11 +91,17 @@ async def serial_number_exists_handler(request: Request, exc: SerialNumberAlread
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
 
 
+class HealthResponse(BaseModel):
+    """Response body for the health check endpoint."""
+
+    status: str = Field(description="Service status", examples=["ok"])
+
+
 app.include_router(customers_router)
 app.include_router(devices_router)
 
 
 @app.get("/health", tags=["Health"])
-async def health_check() -> dict[str, str]:
+async def health_check() -> HealthResponse:
     """Basic health check endpoint to verify the service is up and running."""
-    return {"status": "ok"}
+    return HealthResponse(status="ok")

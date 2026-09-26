@@ -595,7 +595,7 @@
           "Devices"
         ],
         "summary": "Ingest device measurements",
-        "description": "Ingest a batch of measurements for a device.\n\n- The client provides a unique `measurement_id` per measurement for idempotency.\n- Duplicate `measurement_id` values are silently ignored (no duplicates created).\n- Accepts between 1 and 1,000 measurements per request. Larger payloads must be chunked.\n- Returns **201 Created** on success (even for fully duplicate batches).\n- Returns **404** if the device does not exist.\n- Returns **422** if the device is inactive or payload validation fails.",
+        "description": "Ingest a batch of measurements for a device.\n\n- The client provides a unique `measurement_id` per measurement for idempotency.\n- Duplicate `measurement_id` values are silently ignored (no duplicates created)\n- Accepts between 1 and 1,000 measurements per request. Larger payloads must be chunked.\n- Returns **201 Created** on success (even for fully duplicate batches).\n- Returns **404** if the device does not exist.\n- Returns **409** if the device is inactive.\n- Returns **422** if payload validation fails.",
         "operationId": "ingest_measurements_devices__device_id__measurements_post",
         "parameters": [
           {
@@ -640,6 +640,19 @@
               "application/json": {
                 "example": {
                   "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "A resource with the same unique value already exists"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/ErrorDetail"
@@ -856,11 +869,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Health Check Health Get"
+                  "$ref": "#/components/schemas/HealthResponse"
                 }
               }
             }
@@ -2144,6 +2153,24 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Service status",
+            "examples": [
+              "ok"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse",
+        "description": "Response body for the health check endpoint."
       },
       "MeasurementIngestItem": {
         "properties": {

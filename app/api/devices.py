@@ -20,6 +20,7 @@ from app.application.measurement.ingest_measurements import (
 from app.application.measurement.list_measurements import ListMeasurementsQuery
 from app.infrastructure.db.session import DbSessionDep
 from app.schemas.device import AssignCustomerRequest, DeviceActivationUpdate, DeviceCreate, DeviceResponse
+from app.schemas.errors import Err
 from app.schemas.measurement import MeasurementIngestItem, MeasurementResponse, PaginatedMeasurementsResponse
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
@@ -29,6 +30,7 @@ router = APIRouter(prefix="/devices", tags=["Devices"])
     "",
     status_code=status.HTTP_201_CREATED,
     summary="Create a new device",
+    responses={**Err.conflict, **Err.unprocessable},
 )
 async def create_device(
     payload: DeviceCreate,
@@ -50,6 +52,7 @@ async def create_device(
 @router.put(
     "/{device_id}/customer",
     summary="Assign device to a customer",
+    responses={**Err.not_found, **Err.unprocessable},
 )
 async def assign_device_customer(
     device_id: UUID,
@@ -79,6 +82,7 @@ async def assign_device_customer(
     "/{device_id}/customer",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Unassign device from its customer",
+    responses={**Err.not_found},
 )
 async def unassign_device_customer(
     device_id: UUID,
@@ -99,6 +103,7 @@ async def unassign_device_customer(
     "/{device_id}/activation",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Update device activation status",
+    responses={**Err.not_found, **Err.unprocessable},
 )
 async def update_device_activation(
     device_id: UUID,
@@ -113,6 +118,7 @@ async def update_device_activation(
     - Setting `is_active: false` prevents further measurement ingestion.
     - Idempotent: repeating the same target state is a successful no-op.
     - Returns **404** if the device does not exist.
+    - Returns **422** if payload validation fails.
     """
     async with db.begin():
         await handler.handle(
@@ -127,6 +133,7 @@ async def update_device_activation(
     "/{device_id}/measurements",
     status_code=status.HTTP_201_CREATED,
     summary="Ingest device measurements",
+    responses={**Err.not_found, **Err.unprocessable},
 )
 async def ingest_measurements(
     device_id: UUID,
@@ -165,6 +172,7 @@ async def ingest_measurements(
 @router.get(
     "/{device_id}/measurements",
     summary="List device measurements",
+    responses={**Err.not_found, **Err.unprocessable},
 )
 async def list_measurements(
     device_id: UUID,

@@ -17,11 +17,17 @@ from app.application.customer.create_customer import CreateCustomerCommand
 from app.application.customer.get_customer import GetCustomerQuery
 from app.application.customer.list_customers import ListCustomersQuery
 from app.schemas.customer import CustomerCreate, CustomerResponse, PaginatedCustomersResponse
+from app.schemas.errors import Err
 
 router = APIRouter(prefix="/customers", tags=["Customers"])
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, summary="Create a customer")
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a customer",
+    responses={**Err.conflict, **Err.unprocessable},
+)
 async def create_customer(
     payload: CustomerCreate,
     db: DbSessionDep,
@@ -47,7 +53,11 @@ async def create_customer(
     return CustomerResponse.model_validate(customer)
 
 
-@router.get("", summary="List customers")
+@router.get(
+    "",
+    summary="List customers",
+    responses={**Err.unprocessable},
+)
 async def list_customers(
     handler: ListCustomersHandlerDep,
     email: Annotated[EmailStr | None, Query(description="Filter by exact email address")] = None,
@@ -85,7 +95,11 @@ async def list_customers(
     )
 
 
-@router.get("/{customer_id}", summary="Get a customer")
+@router.get(
+    "/{customer_id}",
+    summary="Get a customer",
+    responses={**Err.not_found, **Err.unprocessable},
+)
 async def get_customer(
     customer_id: UUID,
     handler: GetCustomerHandlerDep,
@@ -94,6 +108,7 @@ async def get_customer(
     Retrieve a customer by ID.
 
     - Returns **404 Not Found** if the customer does not exist.
+    - Returns **422 Unprocessable Entity** if `customer_id` is not a valid UUID.
     """
     customer = await handler.handle(GetCustomerQuery(customer_id=customer_id))
     return CustomerResponse.model_validate(customer)

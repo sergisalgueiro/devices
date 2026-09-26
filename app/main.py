@@ -41,6 +41,7 @@ app = FastAPI(
 )
 
 
+
 @app.exception_handler(DeviceNotFoundError)
 async def device_not_found_handler(request: Request, exc: DeviceNotFoundError) -> JSONResponse:
     logger.warning("Device not found: %s %s: %s", request.method, request.url.path, exc)

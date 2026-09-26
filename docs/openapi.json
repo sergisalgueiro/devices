@@ -11,7 +11,7 @@
         "tags": [
           "Customers"
         ],
-        "summary": "Create Customer",
+        "summary": "Create a customer",
         "description": "Register a new customer.\n\n- Returns **201 Created** with the created customer.\n- Returns **409 Conflict** if the email is already registered.\n- Returns **422 Unprocessable Entity** if validation fails.",
         "operationId": "create_customer_customers_post",
         "requestBody": {
@@ -35,12 +35,38 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "A resource with the same unique value already exists"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -51,7 +77,7 @@
         "tags": [
           "Customers"
         ],
-        "summary": "List Customers",
+        "summary": "List customers",
         "description": "List customers with optional filters and cursor-based pagination.\n\n- Returns **200** with a paginated list of customers and a cursor for the next page.\n- Filters combine with AND logic.\n- Returns **422** if filter values fail validation.",
         "operationId": "list_customers_customers_get",
         "parameters": [
@@ -202,8 +228,21 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -216,8 +255,8 @@
         "tags": [
           "Customers"
         ],
-        "summary": "Get Customer",
-        "description": "Retrieve a customer by ID.\n\n- Returns **404 Not Found** if the customer does not exist.",
+        "summary": "Get a customer",
+        "description": "Retrieve a customer by ID.\n\n- Returns **404 Not Found** if the customer does not exist.\n- Returns **422 Unprocessable Entity** if `customer_id` is not a valid UUID.",
         "operationId": "get_customer_customers__customer_id__get",
         "parameters": [
           {
@@ -242,12 +281,38 @@
               }
             }
           },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -284,12 +349,38 @@
               }
             }
           },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                },
+                "example": {
+                  "detail": "A resource with the same unique value already exists"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                },
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
                 }
               }
             }
@@ -338,12 +429,38 @@
               }
             }
           },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -373,6 +490,19 @@
           "204": {
             "description": "Successful Response"
           },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -392,7 +522,7 @@
           "Devices"
         ],
         "summary": "Update device activation status",
-        "description": "Update the activation status of a device (activate or deactivate).\n\n- Setting `is_active: true` enables measurement ingestion.\n- Setting `is_active: false` prevents further measurement ingestion.\n- Idempotent: repeating the same target state is a successful no-op.\n- Returns **404** if the device does not exist.",
+        "description": "Update the activation status of a device (activate or deactivate).\n\n- Setting `is_active: true` enables measurement ingestion.\n- Setting `is_active: false` prevents further measurement ingestion.\n- Idempotent: repeating the same target state is a successful no-op.\n- Returns **404** if the device does not exist.\n- Returns **422** if payload validation fails.",
         "operationId": "update_device_activation_devices__device_id__activation_patch",
         "parameters": [
           {
@@ -420,12 +550,38 @@
           "204": {
             "description": "Successful Response"
           },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -478,12 +634,38 @@
               }
             }
           },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -621,12 +803,38 @@
               }
             }
           },
+          "404": {
+            "description": "Resource not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
+                "example": {
+                  "detail": [
+                    {
+                      "loc": [
+                        "body",
+                        "email"
+                      ],
+                      "msg": "value is not a valid email address: The email address is not valid. It must have exactly one @-sign.",
+                      "type": "value_error",
+                      "input": "invalid-email"
+                    }
+                  ]
+                },
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
                 }
               }
             }
@@ -1909,6 +2117,21 @@
         "title": "DeviceResponse",
         "description": "Schema for device response."
       },
+      "ErrorDetail": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "Human-readable description of the error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorDetail",
+        "description": "Body returned by all domain-level error handlers (404, 409, 500)."
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2128,6 +2351,77 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "ValidationErrorItem": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Loc",
+            "description": "Path to the failing field, e.g. ['body', 'email']"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Msg",
+            "description": "Human-readable reason the validation failed"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Machine-readable error type identifier"
+          },
+          "input": {
+            "title": "Input",
+            "description": "The value that was rejected"
+          },
+          "ctx": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ctx",
+            "description": "Extra context from the validator"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationErrorItem",
+        "description": "A single Pydantic / FastAPI validation failure."
+      },
+      "ValidationErrorResponse": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationErrorItem"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ValidationErrorResponse",
+        "description": "Body returned on 422 Unprocessable Content."
       }
     }
   }

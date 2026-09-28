@@ -100,3 +100,36 @@ tests/
 ├── unit/              # Unit tests (mocked infrastructure)
 └── e2e/               # End-to-end tests (real database)
 ```
+
+## AI-Assisted Development
+
+This project was developed with the assistance of AI coding tools, following rigorous engineering constraints, domain-driven design (DDD), and test-driven validation.
+
+### 1. Tools Used
+- **Antigravity**: Used with the suite of available models (including Gemini models) for contextual codebase reasoning, planning, architectural alignment, and implementation.
+- **Claude Code**: Used with Sonnet 4.6 and Opus 4.6 for technical knowledge lookup, code generation, refactoring, and application logic.
+
+### 2. What They Were Used For
+- Scaffolding Clean Architecture / DDD layer separation (domain, application, infrastructure, API).
+- Generating boilerplate for repositories, migrations, and Pydantic schemas.
+- Accelerating test writing (unit tests for use case handlers and e2e acceptance tests for HTTP endpoints).
+- Cross-referencing FastAPI, asyncpg, and SQLAlchemy 2.0 best practices.
+
+### 3. Suggestions Changed or Rejected
+- **Rejection of `__post_init__` Type Coercion in Domain Entities**:
+  AI models often defaulted to Python's dynamic fluidity by allowing entity constructors to accept primitive types (`str`, `int`, naive `datetime`) and converting them internally inside `__post_init__`. This was explicitly rejected. Entities must strictly enforce invariant boundaries and accept only pre-validated, immutable Value Objects. Type coercion belongs in the application/DTO mapping layer, not the domain entities.
+- **Correction of Device Unassignment Logic**:
+  AI-generated unassignment logic initially detached the customer reference but failed to clean up the device's associated customer timezone. This was caught and corrected to ensure the timezone is explicitly cleared upon unassigning, preventing stale configuration leaks.
+
+### 4. Code Validation Strategy
+All AI-generated code was verified through a multi-tiered validation workflow:
+1. **Container-First Execution**: Tests and commands were run strictly inside Docker Compose (`docker compose exec api pytest`) to eliminate host-environment discrepancies.
+2. **Application Unit Tests**: Comprehensive unit tests for command and query handlers, testing both happy paths and domain violation error paths with mocked infrastructure.
+3. **End-to-End (E2E) Integration Tests**: Tests exercising full HTTP endpoints against real PostgreSQL containers, verifying DI wiring, database migrations, cursor pagination, and HTTP status code mappings.
+4. **Manual Verification**: Manual API testing via Swagger UI (`http://localhost:8000/docs`) and direct database inspection via `make db-shell` to verify response formats, headers, and persistence guarantees.
+
+### 5. Agent Instructions & Skills Used
+- **Project `AGENTS.md`**: The repository's root [`AGENTS.md`](AGENTS.md) defining architectural guidelines, strict UTC timezone rules, native PostgreSQL UUIDs, container-first workflows, and pure entity composition rules.
+- **Claude Code `AGENTS.md`**: Custom global configuration defining model routing strategies and subagent orchestration.
+- **FastAPI Skill (`.agents/skills/fastapi`)**: Guidance ensuring idiomatic FastAPI usage (e.g., `Annotated` dependencies, proper response modeling, async/sync boundary separation).
+- **Personal DDD/Hexagonal Skill**: A custom skill dedicated to enforcing strict Hexagonal / Domain-Driven Design boundaries, immutability of Value Objects, and separation of concerns.

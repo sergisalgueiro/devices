@@ -18,7 +18,7 @@ class DeviceModel(Base):
     serial_number: Mapped[str] = mapped_column(sa.String(100), nullable=False, unique=True)
     customer_id: Mapped[UUID | None] = mapped_column(
         sa.UUID(as_uuid=True),
-        sa.ForeignKey("customers.id", ondelete="RESTRICT"),
+        sa.ForeignKey("customers.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )

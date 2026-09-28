@@ -34,13 +34,14 @@ class CreateDeviceHandler:
         """
         logger.debug("CreateDevice: serial_number=%s", command.serial_number)
 
-        existing = await self.device_repository.get_by_serial_number(command.serial_number)
+        serial_number = SerialNumber(command.serial_number)
+        existing = await self.device_repository.get_by_serial_number(serial_number)
         if existing is not None:
             raise SerialNumberAlreadyExistsError(
                 f"A device with serial number {command.serial_number!r} already exists."
             )
 
-        device = Device(serial_number=SerialNumber(command.serial_number))
+        device = Device(serial_number=serial_number)
 
         await self.device_repository.save(device)
         logger.info("Device created: id=%s, serial_number=%s", device.id.value, command.serial_number)

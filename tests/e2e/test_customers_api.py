@@ -211,6 +211,28 @@ async def test_list_customers_pagination_cursor_works(db_session: AsyncSession) 
     assert first_ids.isdisjoint(second_ids)
 
 
+async def test_list_customers_cursor_with_conflicting_sort_returns_422(db_session: AsyncSession) -> None:
+    suffix = str(uuid4())[:8]
+    for i in range(3):
+        await _seed_customer(db_session, email=f"cursor-conflict-{suffix}-{i}@example.com", name=f"Cursor Test {suffix}")
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
+        first = await ac.get(
+            "/customers",
+            params={"name": f"Cursor Test {suffix}", "limit": 2, "sort_by": "created_at", "sort_dir": "desc"},
+        )
+    assert first.status_code == 200
+    cursor = first.json()["next_cursor"]
+    assert cursor is not None
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
+        conflicting = await ac.get(
+            "/customers",
+            params={"name": f"Cursor Test {suffix}", "limit": 2, "sort_by": "created_at", "sort_dir": "asc", "cursor": cursor},
+        )
+    assert conflicting.status_code == 422
+
+
 async def test_list_customers_invalid_sort_by_returns_422() -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get("/customers", params={"sort_by": "invalid_field"})

@@ -7,6 +7,7 @@ from uuid import UUID
 from app.domain.device import Device
 from app.domain.exceptions import DeviceNotFoundError
 from app.domain.repositories import DeviceRepository
+from app.domain.value_objects import DeviceId
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class UnassignDeviceCustomerHandler:
         """
         logger.debug("UnassignDeviceCustomer: device_id=%s", command.device_id)
 
-        device = await self.device_repository.get_by_id_for_update(command.device_id)
+        device = await self.device_repository.get_by_id_for_update(DeviceId(command.device_id))
         if device is None:
             raise DeviceNotFoundError(f"Device with id {command.device_id!r} not found.")
 

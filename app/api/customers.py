@@ -3,23 +3,27 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import EmailStr
 from starlette import status
 
 from app.api.dependencies import (
     CreateCustomerHandlerDep,
-    DbSessionDep,
     GetCustomerHandlerDep,
     ListCustomersHandlerDep,
 )
 from app.application.customer.create_customer import CreateCustomerCommand
 from app.application.customer.get_customer import GetCustomerQuery
 from app.application.customer.list_customers import ListCustomersQuery
+from app.infrastructure.db.session import get_db
 from app.schemas.customer import CustomerCreate, CustomerResponse, PaginatedCustomersResponse
 from app.schemas.errors import Err
 
-router = APIRouter(prefix="/customers", tags=["Customers"])
+router = APIRouter(
+    prefix="/customers",
+    tags=["Customers"],
+    dependencies=[Depends(get_db)],
+)
 
 
 @router.post(
@@ -30,7 +34,6 @@ router = APIRouter(prefix="/customers", tags=["Customers"])
 )
 async def create_customer(
     payload: CustomerCreate,
-    db: DbSessionDep,
     handler: CreateCustomerHandlerDep,
 ) -> CustomerResponse:
     """
@@ -40,16 +43,15 @@ async def create_customer(
     - Returns **409 Conflict** if the email is already registered.
     - Returns **422 Unprocessable Entity** if validation fails.
     """
-    async with db.begin():
-        customer = await handler.handle(
-            CreateCustomerCommand(
-                name=payload.name,
-                email=str(payload.email),
-                language=str(payload.language) if payload.language is not None else None,
-                country=str(payload.country) if payload.country is not None else None,
-                timezone=str(payload.timezone) if payload.timezone is not None else None,
-            )
+    customer = await handler.handle(
+        CreateCustomerCommand(
+            name=payload.name,
+            email=str(payload.email),
+            language=str(payload.language) if payload.language is not None else None,
+            country=str(payload.country) if payload.country is not None else None,
+            timezone=str(payload.timezone) if payload.timezone is not None else None,
         )
+    )
     return CustomerResponse.model_validate(customer)
 
 

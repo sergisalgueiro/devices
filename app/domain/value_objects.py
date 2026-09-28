@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+import math
 import re
 from typing import Generic, TypeVar
 from uuid import UUID, uuid4
@@ -14,6 +15,7 @@ from app.domain.exceptions import (
     InvalidDeviceIdError,
     InvalidDeviceStatusError,
     InvalidEmailError,
+    InvalidIsActiveError,
     InvalidLanguageError,
     InvalidMeasurementIdError,
     InvalidMeasurementTypeError,
@@ -50,16 +52,9 @@ class CustomerId(ValueObject[UUID]):
     value: UUID = field(default_factory=uuid4)
 
     def __post_init__(self) -> None:
-        if isinstance(self.value, str):
-            try:
-                object.__setattr__(self, "value", UUID(self.value))
-            except (ValueError, TypeError, AttributeError) as exc:
-                raise InvalidCustomerIdError(
-                    f"Invalid UUID string for CustomerId: {self.value!r}"
-                ) from exc
-        elif not isinstance(self.value, UUID):
+        if not isinstance(self.value, UUID):
             raise InvalidCustomerIdError(
-                f"CustomerId must be a UUID instance or valid UUID string, got {type(self.value).__name__}"
+                f"CustomerId must be a UUID instance, got {type(self.value).__name__}"
             )
 
 
@@ -70,16 +65,9 @@ class DeviceId(ValueObject[UUID]):
     value: UUID = field(default_factory=uuid4)
 
     def __post_init__(self) -> None:
-        if isinstance(self.value, str):
-            try:
-                object.__setattr__(self, "value", UUID(self.value))
-            except (ValueError, TypeError, AttributeError) as exc:
-                raise InvalidDeviceIdError(
-                    f"Invalid UUID string for DeviceId: {self.value!r}"
-                ) from exc
-        elif not isinstance(self.value, UUID):
+        if not isinstance(self.value, UUID):
             raise InvalidDeviceIdError(
-                f"DeviceId must be a UUID instance or valid UUID string, got {type(self.value).__name__}"
+                f"DeviceId must be a UUID instance, got {type(self.value).__name__}"
             )
 
 
@@ -279,6 +267,19 @@ class DeviceStatus(ValueObject[str]):
 
 
 @dataclass(frozen=True)
+class IsActive(ValueObject[bool]):
+    """Value object representing whether a device is active."""
+
+    value: bool = True
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, bool):
+            raise InvalidIsActiveError(
+                f"IsActive must be a bool, got {type(self.value).__name__}"
+            )
+
+
+@dataclass(frozen=True)
 class Timestamp(ValueObject[datetime]):
     """Value object representing a timezone-aware UTC timestamp."""
 
@@ -312,16 +313,9 @@ class MeasurementId(ValueObject[UUID]):
     value: UUID = field(default_factory=uuid4)
 
     def __post_init__(self) -> None:
-        if isinstance(self.value, str):
-            try:
-                object.__setattr__(self, "value", UUID(self.value))
-            except (ValueError, TypeError, AttributeError) as exc:
-                raise InvalidMeasurementIdError(
-                    f"Invalid UUID string for MeasurementId: {self.value!r}"
-                ) from exc
-        elif not isinstance(self.value, UUID):
+        if not isinstance(self.value, UUID):
             raise InvalidMeasurementIdError(
-                f"MeasurementId must be a UUID instance or valid UUID string, got {type(self.value).__name__}"
+                f"MeasurementId must be a UUID instance, got {type(self.value).__name__}"
             )
 
 
@@ -359,6 +353,10 @@ class MeasurementValue(ValueObject[float]):
         if not isinstance(self.value, (int, float)):
             raise InvalidMeasurementValueError(
                 f"MeasurementValue must be a numeric type, got {type(self.value).__name__}"
+            )
+        if not math.isfinite(self.value):
+            raise InvalidMeasurementValueError(
+                f"MeasurementValue must be a finite number, got {self.value!r}"
             )
         object.__setattr__(self, "value", float(self.value))
 

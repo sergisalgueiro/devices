@@ -23,6 +23,7 @@ from app.domain.value_objects import (
     DeviceId,
     DeviceStatus,
     DeviceStatusEnum,
+    IsActive,
     SerialNumber,
     TimeZone,
     UpdatedAt,
@@ -39,10 +40,9 @@ class TestDeviceId:
         vo = DeviceId(raw_uuid)
         assert vo.value == raw_uuid
 
-    def test_valid_string_uuid_parsed(self):
-        raw_uuid = uuid4()
-        vo = DeviceId(str(raw_uuid))
-        assert vo.value == raw_uuid
+    def test_string_raises(self):
+        with pytest.raises(InvalidDeviceIdError):
+            DeviceId(str(uuid4()))
 
     def test_invalid_uuid_string(self):
         with pytest.raises(InvalidDeviceIdError):
@@ -366,7 +366,7 @@ class TestDeviceEntity:
             serial_number=SerialNumber("SN-100"),
             customer_id=CustomerId(),
         )
-        assert device.is_active is True
+        assert device.is_active.value is True
 
     def test_set_active_false_and_true(self):
         device = Device(
@@ -376,23 +376,23 @@ class TestDeviceEntity:
         initial_updated_at = device.updated_at.value
 
         device.set_active(False)
-        assert device.is_active is False
+        assert device.is_active.value is False
         assert device.updated_at.value >= initial_updated_at
 
         inactive_updated_at = device.updated_at.value
         device.set_active(True)
-        assert device.is_active is True
+        assert device.is_active.value is True
         assert device.updated_at.value >= inactive_updated_at
 
     def test_set_active_idempotent_noop(self):
         device = Device(
             serial_number=SerialNumber("SN-100"),
             customer_id=CustomerId(),
-            is_active=True,
+            is_active=IsActive(True),
         )
         initial_updated_at = device.updated_at
 
         # Setting to True when already True is a no-op: does not change timestamp or state
         device.set_active(True)
-        assert device.is_active is True
+        assert device.is_active.value is True
         assert device.updated_at == initial_updated_at

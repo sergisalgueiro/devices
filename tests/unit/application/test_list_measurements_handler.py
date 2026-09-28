@@ -9,6 +9,7 @@ import pytest
 from app.application.measurement.list_measurements import ListMeasurementsHandler, ListMeasurementsQuery
 from app.domain.exceptions import DeviceNotFoundError
 from app.domain.repositories import MeasurementListFilters, PaginatedResult
+from app.domain.value_objects import DeviceId, MeasurementType
 
 
 class TestListMeasurementsHandler:
@@ -51,8 +52,8 @@ class TestListMeasurementsHandler:
         )
 
         measurement_repo.list.assert_awaited_once_with(
-            device_id=device_id,
-            filters=MeasurementListFilters(type="temperature", start_time=start, end_time=end),
+            device_id=DeviceId(device_id),
+            filters=MeasurementListFilters(type=MeasurementType("temperature"), start_time=start, end_time=end),
             sort_field="timestamp",
             sort_direction="desc",
             limit=10,
@@ -80,7 +81,7 @@ class TestListMeasurementsHandler:
         )
 
         measurement_repo.list.assert_awaited_once_with(
-            device_id=device_id,
+            device_id=DeviceId(device_id),
             filters=MeasurementListFilters(),
             sort_field="timestamp",
             sort_direction="asc",

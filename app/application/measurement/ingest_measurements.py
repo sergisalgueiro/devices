@@ -59,13 +59,14 @@ class IngestMeasurementsHandler:
         """
         logger.debug("IngestMeasurements: device_id=%s, batch_size=%d", command.device_id, len(command.measurements))
 
-        device = await self.device_repository.get_by_id(command.device_id)
+        device_id = DeviceId(command.device_id)
+        device = await self.device_repository.get_by_id(device_id)
         if device is None:
             raise DeviceNotFoundError(
                 f"Device with id {command.device_id!r} not found."
             )
 
-        if not device.is_active:
+        if not device.is_active.value:
             raise InactiveDeviceError(
                 f"Device {command.device_id!r} is inactive. "
                 "Measurements cannot be ingested for inactive devices."
@@ -74,7 +75,7 @@ class IngestMeasurementsHandler:
         domain_measurements = [
             Measurement(
                 id=MeasurementId(item.measurement_id),
-                device_id=DeviceId(command.device_id),
+                device_id=device_id,
                 type=MeasurementType(item.type),
                 value=MeasurementValue(item.value),
                 unit=MeasurementUnit(item.unit),

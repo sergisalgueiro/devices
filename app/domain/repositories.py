@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Generic, TypeVar
-from uuid import UUID
 
 from app.domain.customer import Customer
 from app.domain.device import Device
 from app.domain.measurement import Measurement
+from app.domain.value_objects import Country, CustomerId, DeviceId, Email, Language, MeasurementType, Name, SerialNumber
 
 T = TypeVar("T")
 
@@ -22,34 +22,34 @@ class PaginatedResult(Generic[T]):
 
 @dataclass(frozen=True)
 class MeasurementListFilters:
-    type: str | None = None
+    type: MeasurementType | None = None
     start_time: datetime | None = None
     end_time: datetime | None = None
 
 
 @dataclass(frozen=True)
 class CustomerListFilters:
-    email: str | None = None
-    country: str | None = None
-    language: str | None = None
-    name: str | None = None
+    email: Email | None = None
+    country: Country | None = None
+    language: Language | None = None
+    name: Name | None = None
 
 
 class DeviceRepository(ABC):
     """Abstract repository interface for Device persistence operations."""
 
     @abstractmethod
-    async def get_by_id(self, device_id: UUID) -> Device | None:
+    async def get_by_id(self, device_id: DeviceId) -> Device | None:
         """Return the Device with the given id, or None if not found."""
         ...
 
     @abstractmethod
-    async def get_by_id_for_update(self, device_id: UUID) -> Device | None:
+    async def get_by_id_for_update(self, device_id: DeviceId) -> Device | None:
         """Return the Device with the given id and acquire a row-level lock (SELECT FOR UPDATE)."""
         ...
 
     @abstractmethod
-    async def get_by_serial_number(self, serial_number: str) -> Device | None:
+    async def get_by_serial_number(self, serial_number: SerialNumber) -> Device | None:
         """Return the Device with the given serial number, or None if not found."""
         ...
 
@@ -63,12 +63,12 @@ class CustomerRepository(ABC):
     """Abstract repository interface for Customer persistence operations."""
 
     @abstractmethod
-    async def get_by_id(self, customer_id: UUID) -> Customer | None:
+    async def get_by_id(self, customer_id: CustomerId) -> Customer | None:
         """Return the Customer with the given id, or None if not found."""
         ...
 
     @abstractmethod
-    async def get_by_email(self, email: str) -> Customer | None:
+    async def get_by_email(self, email: Email) -> Customer | None:
         """Return the Customer with the given email, or None if not found."""
         ...
 
@@ -94,11 +94,6 @@ class MeasurementRepository(ABC):
     """Abstract repository interface for Measurement persistence operations."""
 
     @abstractmethod
-    async def save(self, measurement: Measurement) -> None:
-        """Persist a new Measurement."""
-        ...
-
-    @abstractmethod
     async def save_batch(self, measurements: list[Measurement]) -> int:
         """Persist a batch of measurements, skipping duplicates by id.
 
@@ -109,7 +104,7 @@ class MeasurementRepository(ABC):
     @abstractmethod
     async def list(
         self,
-        device_id: UUID,
+        device_id: DeviceId,
         filters: MeasurementListFilters,
         sort_field: str,
         sort_direction: str,

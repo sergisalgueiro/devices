@@ -219,6 +219,30 @@ async def test_list_measurements_cursor_pagination(db_session: AsyncSession) -> 
     assert ids1.isdisjoint(ids2)
 
 
+async def test_list_measurements_cursor_with_conflicting_sort_returns_422(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
+    device_id = ids["device_id"]
+    base = datetime(2026, 2, 1, 0, 0, 0, tzinfo=timezone.utc)
+    for i in range(3):
+        await _seed_measurement(db_session, device_id, timestamp=base + timedelta(hours=i))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
+        first = await ac.get(
+            f"/devices/{device_id}/measurements",
+            params={"limit": 2, "sort_dir": "desc"},
+        )
+    assert first.status_code == 200
+    cursor = first.json()["next_cursor"]
+    assert cursor is not None
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
+        conflicting = await ac.get(
+            f"/devices/{device_id}/measurements",
+            params={"limit": 2, "sort_dir": "asc", "cursor": cursor},
+        )
+    assert conflicting.status_code == 422
+
+
 async def test_list_measurements_combined_filters_use_and_logic(db_session: AsyncSession) -> None:
     ids = await _seed_device(db_session)
     device_id = ids["device_id"]

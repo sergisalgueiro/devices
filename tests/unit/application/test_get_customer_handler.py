@@ -29,7 +29,7 @@ class TestGetCustomerHandler:
         result = await handler.handle(GetCustomerQuery(customer_id=customer.id.value))
 
         assert result is customer
-        repo.get_by_id.assert_awaited_once_with(customer.id.value)
+        repo.get_by_id.assert_awaited_once_with(customer.id)
 
     async def test_raises_when_customer_not_found(self) -> None:
         repo = AsyncMock()

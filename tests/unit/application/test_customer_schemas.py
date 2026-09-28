@@ -13,7 +13,7 @@ from app.domain.value_objects import (
     Name,
     TimeZone,
 )
-from app.schemas.customer import CustomerCreate, CustomerResponse, CustomerUpdate
+from app.schemas.customer import CustomerCreate, CustomerResponse
 
 
 

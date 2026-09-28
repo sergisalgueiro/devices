@@ -24,3 +24,17 @@ The cursor is a base64-encoded JSON blob containing the sort field, sort directi
 - Clients must store and forward the cursor; they cannot jump to arbitrary pages.
 - The cursor is opaque — clients must not parse or construct cursors manually.
 - Default sort is `created_at asc`; supported fields: `created_at`, `name`, `email`.
+
+## Indexes
+
+Cursor pagination is only O(1) if the sort columns are indexed. Every keyset range condition takes the form:
+
+```sql
+WHERE device_id = :id AND (timestamp, id) > (:last_ts, :last_id)
+ORDER BY timestamp, id
+LIMIT :n
+```
+
+A **composite index on `(device_id, timestamp, id)`** serves this pattern in a single index seek — no filesort. The leading `device_id` column satisfies the equality filter; `timestamp` and `id` provide the pre-sorted order the seek needs. Because any equality prefix of a composite index also covers point-lookups by `device_id` alone, the old single-column `ix_measurements_device_id` index is fully subsumed and was removed (migration `b3c4d5e6f7a8`).
+
+The same principle applies to customers: `ix_customers_created_at_id`, `ix_customers_name_id`, and `ix_customers_email_id` were added in migration `f1e2d3c4b5a6` for the same reason — each covers one sortable field plus `id` as a tiebreaker.

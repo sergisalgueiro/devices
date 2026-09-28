@@ -10,6 +10,7 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.exceptions import InvalidCursorError
 from app.domain.measurement import Measurement
 from app.domain.repositories import MeasurementListFilters, MeasurementRepository, PaginatedResult
 from app.domain.value_objects import DeviceId, MeasurementId, MeasurementType, MeasurementUnit, MeasurementValue, Timestamp
@@ -38,21 +39,6 @@ class SqlAlchemyMeasurementRepository(MeasurementRepository):
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
-
-    async def save(self, measurement: Measurement) -> None:
-        """Persist a single Measurement."""
-        logger.debug("INSERT measurement: id=%s, device_id=%s", measurement.id.value, measurement.device_id.value)
-        row = MeasurementModel(
-            id=measurement.id.value,
-            device_id=measurement.device_id.value,
-            type=measurement.type.value,
-            value=measurement.value.value,
-            unit=measurement.unit.value,
-            timestamp=measurement.timestamp.value,
-        )
-        self._session.add(row)
-        await self._session.flush()
-        logger.debug("Measurement flushed: id=%s", measurement.id.value)
 
     async def save_batch(self, measurements: list[Measurement]) -> int:
         """Persist a batch of measurements, skipping duplicates by id.
@@ -92,7 +78,7 @@ class SqlAlchemyMeasurementRepository(MeasurementRepository):
 
     async def list(
         self,
-        device_id: UUID,
+        device_id: DeviceId,
         filters: MeasurementListFilters,
         sort_field: str,
         sort_direction: str,
@@ -107,12 +93,18 @@ class SqlAlchemyMeasurementRepository(MeasurementRepository):
         cursor_timestamp: datetime | None = None
         cursor_id: UUID | None = None
         if cursor is not None:
-            sort_direction, cursor_timestamp, cursor_id = _decode_cursor(cursor)
+            cursor_sort_direction, cursor_timestamp, cursor_id = _decode_cursor(cursor)
+            if cursor_sort_direction != sort_direction:
+                raise InvalidCursorError(
+                    f"Cursor sort direction ({cursor_sort_direction!r}) "
+                    f"conflicts with request sort direction ({sort_direction!r})."
+                )
+            sort_direction = cursor_sort_direction
 
-        stmt = select(MeasurementModel).where(MeasurementModel.device_id == device_id)
+        stmt = select(MeasurementModel).where(MeasurementModel.device_id == device_id.value)
 
         if filters.type is not None:
-            stmt = stmt.where(MeasurementModel.type == filters.type)
+            stmt = stmt.where(MeasurementModel.type == filters.type.value)
         if filters.start_time is not None:
             stmt = stmt.where(MeasurementModel.timestamp >= filters.start_time)
         if filters.end_time is not None:

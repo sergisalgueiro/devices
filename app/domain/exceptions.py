@@ -45,6 +45,10 @@ class InvalidDeviceStatusError(DomainValidationError):
     """Raised when a DeviceStatus value is invalid."""
 
 
+class InvalidIsActiveError(DomainValidationError):
+    """Raised when an IsActive value is invalid."""
+
+
 class InvalidTimestampError(DomainValidationError):
     """Raised when a Timestamp value is invalid."""
 
@@ -63,6 +67,10 @@ class InvalidMeasurementValueError(DomainValidationError):
 
 class InvalidMeasurementUnitError(DomainValidationError):
     """Raised when a MeasurementUnit value is invalid."""
+
+
+class InvalidCursorError(DomainValidationError):
+    """Raised when pagination cursor conflicts with the requested sort parameters."""
 
 
 class DeviceNotFoundError(DomainError):

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 
 from app.application.customer.list_customers import ListCustomersHandler, ListCustomersQuery
 from app.domain.repositories import CustomerListFilters, PaginatedResult
+from app.domain.value_objects import Country, Language
 
 
 class TestListCustomersHandler:
@@ -19,7 +20,7 @@ class TestListCustomersHandler:
 
         assert result is expected
         repo.list.assert_awaited_once_with(
-            filters=CustomerListFilters(country="ES", language="en"),
+            filters=CustomerListFilters(country=Country("ES"), language=Language("en")),
             sort_field="created_at",
             sort_direction="asc",
             limit=10,

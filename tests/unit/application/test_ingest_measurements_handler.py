@@ -14,7 +14,7 @@ from app.application.measurement.ingest_measurements import (
 from app.domain.device import Device
 from app.domain.exceptions import DeviceNotFoundError, InactiveDeviceError
 from app.domain.measurement import Measurement
-from app.domain.value_objects import CustomerId, DeviceId, SerialNumber
+from app.domain.value_objects import CustomerId, DeviceId, IsActive, SerialNumber
 
 
 def _make_device(*, is_active: bool = True) -> Device:
@@ -22,7 +22,7 @@ def _make_device(*, is_active: bool = True) -> Device:
         id=DeviceId(uuid4()),
         serial_number=SerialNumber("SN-TEST-001"),
         customer_id=CustomerId(uuid4()),
-        is_active=is_active,
+        is_active=IsActive(is_active),
     )
 
 

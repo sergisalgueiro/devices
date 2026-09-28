@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_extra_types.timezone_name import TimeZoneName
+
+from app.schemas.base import DomainResponseBase
 
 
 class DeviceActivationUpdate(BaseModel):
@@ -30,7 +31,7 @@ class AssignCustomerRequest(BaseModel):
     )
 
 
-class DeviceResponse(BaseModel):
+class DeviceResponse(DomainResponseBase):
     """Schema for device response."""
 
     model_config = ConfigDict(from_attributes=True)
@@ -43,16 +44,3 @@ class DeviceResponse(BaseModel):
     timezone: str | None = Field(default=None, description="IANA Time Zone identifier assigned to this device")
     created_at: datetime = Field(description="UTC timestamp when the device was registered")
     updated_at: datetime = Field(description="UTC timestamp of the last update")
-
-    @model_validator(mode="before")
-    @classmethod
-    def unwrap_value_objects(cls, data: Any) -> Any:
-        """Unwrap Value Objects when validating from domain entity objects."""
-        if hasattr(data, "__dataclass_fields__"):
-            return {
-                field_name: getattr(field_val, "value", field_val)
-                for field_name, field_val in (
-                    (f, getattr(data, f)) for f in data.__dataclass_fields__
-                )
-            }
-        return data

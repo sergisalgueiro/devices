@@ -38,10 +38,9 @@ class TestCustomerId:
         vo = CustomerId(raw_uuid)
         assert vo.value == raw_uuid
 
-    def test_valid_string_uuid_parsed(self):
-        raw_uuid = uuid4()
-        vo = CustomerId(str(raw_uuid))
-        assert vo.value == raw_uuid
+    def test_string_raises(self):
+        with pytest.raises(InvalidCustomerIdError):
+            CustomerId(str(uuid4()))
 
     def test_invalid_uuid_string(self):
         with pytest.raises(InvalidCustomerIdError):

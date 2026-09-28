@@ -3,11 +3,13 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from app.domain.exceptions import DeviceNotFoundError
 from app.domain.measurement import Measurement
 from app.domain.repositories import DeviceRepository, MeasurementListFilters, MeasurementRepository, PaginatedResult
+from app.domain.value_objects import DeviceId, MeasurementType
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +19,8 @@ class ListMeasurementsQuery:
     """Query DTO for listing measurements for a device with filters and cursor-based pagination."""
 
     device_id: UUID
-    sort_field: str = "timestamp"
-    sort_direction: str = "desc"
+    sort_field: Literal["timestamp"] = "timestamp"
+    sort_direction: Literal["asc", "desc"] = "desc"
     limit: int = 20
     cursor: str | None = None
     type: str | None = None
@@ -44,18 +46,19 @@ class ListMeasurementsHandler:
             query.device_id, query.sort_field, query.sort_direction, query.limit, query.cursor,
         )
 
-        device = await self.device_repository.get_by_id(query.device_id)
+        device_id = DeviceId(query.device_id)
+        device = await self.device_repository.get_by_id(device_id)
         if device is None:
             raise DeviceNotFoundError(f"Device with id {query.device_id!r} not found.")
 
         filters = MeasurementListFilters(
-            type=query.type,
+            type=MeasurementType(query.type) if query.type is not None else None,
             start_time=query.start_time,
             end_time=query.end_time,
         )
 
         return await self.measurement_repository.list(
-            device_id=query.device_id,
+            device_id=device_id,
             filters=filters,
             sort_field=query.sort_field,
             sort_direction=query.sort_direction,

@@ -7,6 +7,7 @@ from uuid import UUID
 from app.domain.customer import Customer
 from app.domain.exceptions import CustomerNotFoundError
 from app.domain.repositories import CustomerRepository
+from app.domain.value_objects import CustomerId
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class GetCustomerHandler:
         """
         logger.debug("GetCustomer: customer_id=%s", query.customer_id)
 
-        customer = await self.customer_repository.get_by_id(query.customer_id)
+        customer = await self.customer_repository.get_by_id(CustomerId(query.customer_id))
         if customer is None:
             raise CustomerNotFoundError(
                 f"Customer with id {query.customer_id!r} not found."

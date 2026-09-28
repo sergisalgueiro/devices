@@ -6,6 +6,7 @@ from uuid import UUID
 
 from app.domain.exceptions import DeviceNotFoundError
 from app.domain.repositories import DeviceRepository
+from app.domain.value_objects import DeviceId
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +34,13 @@ class UpdateDeviceActivationHandler:
         """
         logger.debug("UpdateDeviceActivation: device_id=%s, is_active=%s", command.device_id, command.is_active)
 
-        device = await self.device_repository.get_by_id(command.device_id)
+        device = await self.device_repository.get_by_id(DeviceId(command.device_id))
         if device is None:
             raise DeviceNotFoundError(
                 f"Device with id {command.device_id!r} not found."
             )
 
-        old_state = device.is_active
+        old_state = device.is_active.value
         device.set_active(command.is_active)
         await self.device_repository.save(device)
 

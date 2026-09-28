@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import Field
 from starlette import status
 
@@ -18,12 +18,16 @@ from app.application.measurement.ingest_measurements import (
     MeasurementItem,
 )
 from app.application.measurement.list_measurements import ListMeasurementsQuery
-from app.infrastructure.db.session import DbSessionDep
+from app.infrastructure.db.session import get_db
 from app.schemas.device import AssignCustomerRequest, DeviceActivationUpdate, DeviceCreate, DeviceResponse
 from app.schemas.errors import Err
 from app.schemas.measurement import MeasurementIngestItem, MeasurementResponse, PaginatedMeasurementsResponse
 
-router = APIRouter(prefix="/devices", tags=["Devices"])
+router = APIRouter(
+    prefix="/devices",
+    tags=["Devices"],
+    dependencies=[Depends(get_db)],
+)
 
 
 @router.post(
@@ -34,7 +38,6 @@ router = APIRouter(prefix="/devices", tags=["Devices"])
 )
 async def create_device(
     payload: DeviceCreate,
-    db: DbSessionDep,
     handler: CreateDeviceHandlerDep,
 ) -> DeviceResponse:
     """
@@ -44,8 +47,7 @@ async def create_device(
     - Returns **409** if the serial number is already registered.
     - Returns **422** if payload validation fails.
     """
-    async with db.begin():
-        device = await handler.handle(CreateDeviceCommand(serial_number=payload.serial_number))
+    device = await handler.handle(CreateDeviceCommand(serial_number=payload.serial_number))
     return DeviceResponse.model_validate(device)
 
 
@@ -57,7 +59,6 @@ async def create_device(
 async def assign_device_customer(
     device_id: UUID,
     payload: AssignCustomerRequest,
-    db: DbSessionDep,
     handler: AssignDeviceCustomerHandlerDep,
 ) -> DeviceResponse:
     """
@@ -69,14 +70,13 @@ async def assign_device_customer(
       Unassign it first (`DELETE /devices/{id}/customer`), then re-assign.
     - Returns **422** if payload validation fails.
     """
-    async with db.begin():
-        device = await handler.handle(
-            AssignDeviceCustomerCommand(
-                device_id=device_id,
-                customer_id=payload.customer_id,
-                timezone=str(payload.timezone) if payload.timezone is not None else None,
-            )
+    device = await handler.handle(
+        AssignDeviceCustomerCommand(
+            device_id=device_id,
+            customer_id=payload.customer_id,
+            timezone=str(payload.timezone) if payload.timezone is not None else None,
         )
+    )
     return DeviceResponse.model_validate(device)
 
 
@@ -88,7 +88,6 @@ async def assign_device_customer(
 )
 async def unassign_device_customer(
     device_id: UUID,
-    db: DbSessionDep,
     handler: UnassignDeviceCustomerHandlerDep,
 ) -> None:
     """
@@ -97,8 +96,7 @@ async def unassign_device_customer(
     - Idempotent: unassigning an already-unassigned device is a successful no-op.
     - Returns **404** if the device does not exist.
     """
-    async with db.begin():
-        await handler.handle(UnassignDeviceCustomerCommand(device_id=device_id))
+    await handler.handle(UnassignDeviceCustomerCommand(device_id=device_id))
 
 
 @router.patch(
@@ -110,7 +108,6 @@ async def unassign_device_customer(
 async def update_device_activation(
     device_id: UUID,
     payload: DeviceActivationUpdate,
-    db: DbSessionDep,
     handler: UpdateDeviceActivationHandlerDep,
 ) -> None:
     """
@@ -122,13 +119,12 @@ async def update_device_activation(
     - Returns **404** if the device does not exist.
     - Returns **422** if payload validation fails.
     """
-    async with db.begin():
-        await handler.handle(
-            UpdateDeviceActivationCommand(
-                device_id=device_id,
-                is_active=payload.is_active,
-            )
+    await handler.handle(
+        UpdateDeviceActivationCommand(
+            device_id=device_id,
+            is_active=payload.is_active,
         )
+    )
 
 
 @router.post(
@@ -140,7 +136,6 @@ async def update_device_activation(
 async def ingest_measurements(
     device_id: UUID,
     payload: Annotated[list[MeasurementIngestItem], Field(min_length=1, max_length=1000)],
-    db: DbSessionDep,
     handler: IngestMeasurementsHandlerDep,
 ) -> None:
     """
@@ -154,22 +149,21 @@ async def ingest_measurements(
     - Returns **409** if the device is inactive.
     - Returns **422** if payload validation fails.
     """
-    async with db.begin():
-        await handler.handle(
-            IngestMeasurementsCommand(
-                device_id=device_id,
-                measurements=[
-                    MeasurementItem(
-                        measurement_id=item.measurement_id,
-                        type=item.type,
-                        value=item.value,
-                        unit=item.unit,
-                        timestamp=item.timestamp,
-                    )
-                    for item in payload
-                ],
-            )
+    await handler.handle(
+        IngestMeasurementsCommand(
+            device_id=device_id,
+            measurements=[
+                MeasurementItem(
+                    measurement_id=item.measurement_id,
+                    type=item.type,
+                    value=item.value,
+                    unit=item.unit,
+                    timestamp=item.timestamp,
+                )
+                for item in payload
+            ],
         )
+    )
 
 
 @router.get(

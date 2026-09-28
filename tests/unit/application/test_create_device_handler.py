@@ -26,7 +26,7 @@ class TestCreateDeviceHandler:
         assert device.serial_number.value == "SN-001"
         assert device.customer_id is None
         assert device.timezone is None
-        assert device.is_active is True
+        assert device.is_active.value is True
         device_repo.save.assert_awaited_once_with(device)
 
     async def test_raises_when_serial_number_already_exists(self) -> None:

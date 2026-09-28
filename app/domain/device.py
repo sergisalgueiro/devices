@@ -8,6 +8,7 @@ from app.domain.value_objects import (
     DeviceId,
     DeviceStatus,
     CustomerId,
+    IsActive,
     SerialNumber,
     TimeZone,
     UpdatedAt,
@@ -22,16 +23,16 @@ class Device:
     customer_id: CustomerId | None = None
     id: DeviceId = field(default_factory=DeviceId)
     status: DeviceStatus = field(default_factory=DeviceStatus)
-    is_active: bool = True
+    is_active: IsActive = field(default_factory=IsActive)
     timezone: TimeZone | None = None
     created_at: CreatedAt = field(default_factory=CreatedAt)
     updated_at: UpdatedAt = field(default_factory=UpdatedAt)
 
     def set_active(self, is_active: bool) -> None:
         """Update activation status. Idempotent no-op if already in the target state."""
-        if self.is_active == is_active:
+        if self.is_active.value == is_active:
             return
-        self.is_active = is_active
+        self.is_active = IsActive(is_active)
         self.touch()
 
     def update_status(self, new_status: DeviceStatus) -> None:

@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.customer import Customer
-from app.domain.exceptions import CustomerEmailAlreadyExistsError
+from app.domain.exceptions import CustomerEmailAlreadyExistsError, InvalidCursorError
 from app.domain.repositories import CustomerListFilters, CustomerRepository, PaginatedResult
 from app.domain.value_objects import Country, CreatedAt, CustomerId, Email, Language, Name, TimeZone
 from app.infrastructure.db.models.customer import CustomerModel
@@ -50,10 +50,10 @@ class SqlAlchemyCustomerRepository(CustomerRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, customer_id: UUID) -> Customer | None:
+    async def get_by_id(self, customer_id: CustomerId) -> Customer | None:
         logger.debug("SELECT customer: id=%s", customer_id)
         result = await self._session.execute(
-            select(CustomerModel).where(CustomerModel.id == customer_id)
+            select(CustomerModel).where(CustomerModel.id == customer_id.value)
         )
         row = result.scalar_one_or_none()
         if row is None:
@@ -62,10 +62,10 @@ class SqlAlchemyCustomerRepository(CustomerRepository):
         logger.debug("Customer found: id=%s", customer_id)
         return self._to_domain(row)
 
-    async def get_by_email(self, email: str) -> Customer | None:
+    async def get_by_email(self, email: Email) -> Customer | None:
         logger.debug("SELECT customer: email=%s", email)
         result = await self._session.execute(
-            select(CustomerModel).where(CustomerModel.email == email)
+            select(CustomerModel).where(CustomerModel.email == email.value)
         )
         row = result.scalar_one_or_none()
         if row is None:
@@ -116,19 +116,25 @@ class SqlAlchemyCustomerRepository(CustomerRepository):
         )
 
         if cursor is not None:
-            sort_field, sort_direction, cursor_sort_value, cursor_id = _decode_cursor(cursor)
+            cursor_sort_field, cursor_sort_direction, cursor_sort_value, cursor_id = _decode_cursor(cursor)
+            if cursor_sort_field != sort_field or cursor_sort_direction != sort_direction:
+                raise InvalidCursorError(
+                    f"Cursor sort parameters (field={cursor_sort_field!r}, direction={cursor_sort_direction!r}) "
+                    f"conflict with request parameters (field={sort_field!r}, direction={sort_direction!r})."
+                )
 
         col = _SORT_COLUMNS[sort_field]
         stmt = select(CustomerModel)
 
         if filters.email is not None:
-            stmt = stmt.where(CustomerModel.email == filters.email)
+            stmt = stmt.where(CustomerModel.email == filters.email.value)
         if filters.country is not None:
-            stmt = stmt.where(CustomerModel.country == filters.country)
+            stmt = stmt.where(CustomerModel.country == filters.country.value)
         if filters.language is not None:
-            stmt = stmt.where(CustomerModel.language == filters.language)
+            stmt = stmt.where(CustomerModel.language == filters.language.value)
         if filters.name is not None:
-            stmt = stmt.where(CustomerModel.name.ilike(f"%{filters.name}%"))
+            escaped = filters.name.value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            stmt = stmt.where(CustomerModel.name.ilike(f"%{escaped}%", escape="\\"))
 
         if cursor is not None:
             if sort_direction == "asc":

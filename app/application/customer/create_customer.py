@@ -38,7 +38,8 @@ class CreateCustomerHandler:
         """
         logger.debug("CreateCustomer: email=%s", command.email)
 
-        existing = await self.customer_repository.get_by_email(command.email)
+        email = Email(command.email)
+        existing = await self.customer_repository.get_by_email(email)
         if existing is not None:
             raise CustomerEmailAlreadyExistsError(
                 f"A customer with email {command.email!r} already exists."
@@ -46,7 +47,7 @@ class CreateCustomerHandler:
 
         customer = Customer(
             name=Name(command.name),
-            email=Email(command.email),
+            email=email,
             language=Language(command.language) if command.language is not None else None,
             country=Country(command.country) if command.country is not None else None,
             timezone=TimeZone(command.timezone) if command.timezone is not None else None,

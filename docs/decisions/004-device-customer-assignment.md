@@ -12,7 +12,7 @@ The original design required a `customer_id` at device creation time. In practic
 
 Device creation (`POST /devices`) takes only a `serial_number`. Customer assignment is a separate, explicit operation:
 
-- `PUT /devices/{id}/customer` — assign a device to a customer, optionally setting a timezone.
+- `PUT /devices/{id}/customer` — assign a device to a customer, optionally setting a timezone. Returns 409 if the device is already assigned to a different customer.
 - `DELETE /devices/{id}/customer` — unassign a device from its customer.
 
 ## Rationale
@@ -38,9 +38,11 @@ This was preferred over `RESTRICT` (which blocked customer deletion until device
 
 `SET NULL` was preferred over removing the FK entirely because the FK still guarantees referential integrity — no device can reference a non-existent customer row — while giving callers the simpler delete-and-done workflow.
 
-### Assign is idempotent; unassign is a no-op when already unassigned
+### Assign guards against silent ownership transfer; unassign is a no-op when already unassigned
 
-Re-assigning to the same or a different customer always succeeds (no conflict error). Unassigning an already-unassigned device returns 204 without error. Both choices reduce friction for callers that cannot guarantee prior state.
+Re-assigning to the **same** customer always succeeds and is idempotent (useful e.g. to update the timezone). Re-assigning to a **different** customer returns 409 Conflict — the caller must first unassign the device (`DELETE /devices/{id}/customer`), then assign it to the new customer. This makes ownership transfers deliberate and auditable, consistent with the "no silent cascading" philosophy used elsewhere in the system.
+
+Unassigning an already-unassigned device returns 204 without error, reducing friction for callers that cannot guarantee prior state.
 
 ## Consequences
 

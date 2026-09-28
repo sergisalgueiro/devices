@@ -24,7 +24,7 @@ The application-level check provides a clean domain error message. The DB constr
 |-------|-----------|
 | Domain | `Device.customer_id` is typed `CustomerId | None` — a single optional value, not a collection. |
 | Database | `devices.customer_id` is a single FK column referencing `customers.id`. There is no many-to-many join table. |
-| Application | `assign_device_customer` overwrites the current `customer_id` (re-assignment is idempotent); `unassign_device_customer` sets it to `NULL`. |
+| Application | `Device.assign_customer()` rejects cross-customer re-assignment with `DeviceAlreadyAssignedError` (→ HTTP 409). Same-customer re-assignment (e.g. timezone update) remains idempotent. To transfer a device, callers must unassign first (`DELETE /devices/{id}/customer`), then assign to the new customer. `unassign_device_customer` sets `customer_id` to `NULL`. |
 
 Ownership is structurally singular by design — the schema makes multi-customer assignment impossible.
 
@@ -74,7 +74,7 @@ Documented in [ADR 005 — Customer Deletion: Devices and Measurements](005-cust
 | Serial number races | Two concurrent `POST /devices` with the same serial number: the application check may pass for both, but the DB `UNIQUE` constraint rejects the second `INSERT`, producing a `409 Conflict`. |
 | Email races | Same pattern as serial numbers: application pre-check + DB `UNIQUE` constraint on `customers.email`. |
 | Measurement duplicates | `ON CONFLICT (id) DO NOTHING` makes concurrent ingestion of the same measurement ID safe — one wins, the rest are no-ops. |
-| Device updates | Concurrent mutations to the same device (e.g., two assignment requests) follow last-writer-wins semantics. There is no pessimistic locking (`SELECT FOR UPDATE`). At `READ COMMITTED`, both transactions read the pre-update state, and the last to commit overwrites the first. For idempotent operations (activation, assignment) this is acceptable. |
+| Device updates | Concurrent mutations to the same device (e.g., two activation requests) follow last-writer-wins semantics. There is no pessimistic locking (`SELECT FOR UPDATE`). At `READ COMMITTED`, both transactions read the pre-update state, and the last to commit overwrites the first. For idempotent operations (activation) this is acceptable. Concurrent cross-customer re-assignment is now rejected at the domain layer before any write occurs. |
 
 ## Consequences
 

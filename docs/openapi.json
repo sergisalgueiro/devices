@@ -394,7 +394,7 @@
           "Devices"
         ],
         "summary": "Assign device to a customer",
-        "description": "Assign a device to a customer, optionally setting a timezone.\n\n- Idempotent: re-assigning to the same or a different customer is always accepted.\n- Returns **404** if the device or customer does not exist.\n- Returns **422** if payload validation fails.",
+        "description": "Assign a device to a customer, optionally setting a timezone.\n\n- Same-customer re-assignment (e.g. timezone update) is accepted and idempotent.\n- Returns **404** if the device or customer does not exist.\n- Returns **409** if the device is already assigned to a different customer.\n  Unassign it first (`DELETE /devices/{id}/customer`), then re-assign.\n- Returns **422** if payload validation fails.",
         "operationId": "assign_device_customer_devices__device_id__customer_put",
         "parameters": [
           {
@@ -435,6 +435,19 @@
               "application/json": {
                 "example": {
                   "detail": "Resource with the given id was not found"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": "A resource with the same unique value already exists"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/ErrorDetail"

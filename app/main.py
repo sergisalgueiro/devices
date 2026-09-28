@@ -12,6 +12,7 @@ from app.api.devices import router as devices_router
 from app.domain.exceptions import (
     CustomerEmailAlreadyExistsError,
     CustomerNotFoundError,
+    DeviceAlreadyAssignedError,
     DeviceNotFoundError,
     DomainError,
     DomainValidationError,
@@ -88,6 +89,12 @@ async def customer_email_exists_handler(request: Request, exc: CustomerEmailAlre
 @app.exception_handler(SerialNumberAlreadyExistsError)
 async def serial_number_exists_handler(request: Request, exc: SerialNumberAlreadyExistsError) -> JSONResponse:
     logger.warning("Device serial number conflict: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+@app.exception_handler(DeviceAlreadyAssignedError)
+async def device_already_assigned_handler(request: Request, exc: DeviceAlreadyAssignedError) -> JSONResponse:
+    logger.warning("Device already assigned: %s %s: %s", request.method, request.url.path, exc)
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
 
 

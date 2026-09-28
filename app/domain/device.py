@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from app.domain.exceptions import DeviceAlreadyAssignedError
 from app.domain.value_objects import (
     CreatedAt,
     DeviceId,
@@ -51,7 +52,16 @@ class Device:
         self.update_status(DeviceStatus.decommissioned())
 
     def assign_customer(self, customer_id: CustomerId, timezone: TimeZone | None = None) -> None:
-        """Assign device to a customer, optionally setting a timezone."""
+        """Assign device to a customer, optionally setting a timezone.
+
+        Raises DeviceAlreadyAssignedError if already assigned to a different customer.
+        Same-customer re-assignment (e.g. to update timezone) is accepted.
+        """
+        if self.customer_id is not None and self.customer_id != customer_id:
+            raise DeviceAlreadyAssignedError(
+                f"Device {self.id} is already assigned to customer {self.customer_id}. "
+                f"Unassign it first before assigning to customer {customer_id}."
+            )
         self.customer_id = customer_id
         self.timezone = timezone
         self.touch()

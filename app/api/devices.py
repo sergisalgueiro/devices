@@ -52,7 +52,7 @@ async def create_device(
 @router.put(
     "/{device_id}/customer",
     summary="Assign device to a customer",
-    responses={**Err.not_found, **Err.unprocessable},
+    responses={**Err.not_found, **Err.conflict, **Err.unprocessable},
 )
 async def assign_device_customer(
     device_id: UUID,
@@ -63,8 +63,10 @@ async def assign_device_customer(
     """
     Assign a device to a customer, optionally setting a timezone.
 
-    - Idempotent: re-assigning to the same or a different customer is always accepted.
+    - Same-customer re-assignment (e.g. timezone update) is accepted and idempotent.
     - Returns **404** if the device or customer does not exist.
+    - Returns **409** if the device is already assigned to a different customer.
+      Unassign it first (`DELETE /devices/{id}/customer`), then re-assign.
     - Returns **422** if payload validation fails.
     """
     async with db.begin():

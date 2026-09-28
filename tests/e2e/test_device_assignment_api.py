@@ -106,6 +106,21 @@ async def test_assign_to_nonexistent_customer_returns_404(db_session: AsyncSessi
     assert response.status_code == 404
 
 
+async def test_assign_device_already_assigned_to_different_customer_returns_409(db_session: AsyncSession) -> None:
+    customer_a = await _seed_customer(db_session)
+    customer_b = await _seed_customer(db_session)
+    device = await _seed_device(db_session, customer_id=customer_a["customer_id"])
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
+        response = await ac.put(
+            f"/devices/{device['device_id']}/customer",
+            json={"customer_id": str(customer_b["customer_id"])},
+        )
+
+    assert response.status_code == 409
+    assert "already assigned" in response.json()["detail"].lower()
+
+
 # ---------------------------------------------------------------------------
 # Unassign
 # ---------------------------------------------------------------------------

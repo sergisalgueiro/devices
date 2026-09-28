@@ -7,7 +7,7 @@ import pytest
 
 from app.application.device.assign_device_customer import AssignDeviceCustomerCommand, AssignDeviceCustomerHandler
 from app.domain.device import Device
-from app.domain.exceptions import CustomerNotFoundError, DeviceNotFoundError
+from app.domain.exceptions import CustomerNotFoundError, DeviceAlreadyAssignedError, DeviceNotFoundError
 from app.domain.value_objects import CustomerId, DeviceId, SerialNumber
 
 
@@ -79,6 +79,26 @@ class TestAssignDeviceCustomerHandler:
             device_repository=device_repo, customer_repository=customer_repo
         )
         with pytest.raises(CustomerNotFoundError):
+            await handler.handle(
+                AssignDeviceCustomerCommand(device_id=uuid4(), customer_id=uuid4())
+            )
+
+        device_repo.save.assert_not_awaited()
+
+    async def test_raises_when_device_already_assigned_to_different_customer(self) -> None:
+        existing_customer_id = uuid4()
+        device = _make_device()
+        device.assign_customer(CustomerId(existing_customer_id))
+
+        device_repo = AsyncMock()
+        device_repo.get_by_id.return_value = device
+        customer_repo = AsyncMock()
+        customer_repo.get_by_id.return_value = object()
+
+        handler = AssignDeviceCustomerHandler(
+            device_repository=device_repo, customer_repository=customer_repo
+        )
+        with pytest.raises(DeviceAlreadyAssignedError):
             await handler.handle(
                 AssignDeviceCustomerCommand(device_id=uuid4(), customer_id=uuid4())
             )

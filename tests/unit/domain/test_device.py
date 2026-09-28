@@ -9,6 +9,7 @@ import pytest
 
 from app.domain.device import Device
 from app.domain.exceptions import (
+    DeviceAlreadyAssignedError,
     InvalidCustomerIdError,
     InvalidDeviceIdError,
     InvalidDeviceStatusError,
@@ -323,8 +324,29 @@ class TestDeviceEntity:
         assert device.customer_id == customer_id
 
         new_customer_id = CustomerId()
-        device.assign_customer(new_customer_id)
-        assert device.customer_id == new_customer_id
+        with pytest.raises(DeviceAlreadyAssignedError):
+            device.assign_customer(new_customer_id)
+        assert device.customer_id == customer_id
+
+    def test_assign_customer_same_customer_is_idempotent(self):
+        customer_id = CustomerId()
+        device = Device(serial_number=SerialNumber("SN-100"))
+        device.assign_customer(customer_id, timezone=TimeZone("UTC"))
+
+        device.assign_customer(customer_id, timezone=TimeZone("Europe/Madrid"))
+
+        assert device.customer_id == customer_id
+        assert device.timezone == TimeZone("Europe/Madrid")
+
+    def test_assign_customer_different_customer_raises(self):
+        customer_a = CustomerId()
+        customer_b = CustomerId()
+        device = Device(serial_number=SerialNumber("SN-100"))
+        device.assign_customer(customer_a)
+
+        with pytest.raises(DeviceAlreadyAssignedError):
+            device.assign_customer(customer_b)
+        assert device.customer_id == customer_a
 
     def test_update_status(self):
         device = Device(

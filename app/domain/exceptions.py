@@ -83,3 +83,7 @@ class CustomerEmailAlreadyExistsError(DomainError):
 
 class SerialNumberAlreadyExistsError(DomainError):
     """Raised when a device with the given serial number already exists."""
+
+
+class DeviceAlreadyAssignedError(DomainError):
+    """Raised when a device is already assigned to a different customer."""

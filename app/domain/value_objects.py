@@ -97,10 +97,12 @@ class Name(ValueObject[str]):
         trimmed = self.value.strip()
         if not trimmed:
             raise InvalidNameError("Name cannot be empty or whitespace only")
-        if len(self.value) > 255:
+        if len(trimmed) > 255:
             raise InvalidNameError(
-                f"Name cannot exceed 255 characters (got {len(self.value)})"
+                f"Name cannot exceed 255 characters (got {len(trimmed)})"
             )
+        if trimmed != self.value:
+            object.__setattr__(self, "value", trimmed)
 
 
 @dataclass(frozen=True)
@@ -119,6 +121,8 @@ class Email(ValueObject[str]):
             raise InvalidEmailError("Email cannot be empty")
         if not _EMAIL_REGEX.match(trimmed):
             raise InvalidEmailError(f"Invalid email address format: {self.value!r}")
+        if trimmed != self.value:
+            object.__setattr__(self, "value", trimmed)
 
 
 @dataclass(frozen=True)

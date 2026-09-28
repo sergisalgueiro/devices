@@ -89,6 +89,28 @@ class TestCreateCustomerHandler:
 
         repo.save.assert_not_awaited()
 
+    async def test_trims_whitespace_from_name(self) -> None:
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+
+        handler = CreateCustomerHandler(customer_repository=repo)
+        customer = await handler.handle(
+            CreateCustomerCommand(name="  Alice  ", email="alice@example.com")
+        )
+
+        assert customer.name.value == "Alice"
+
+    async def test_trims_whitespace_from_email(self) -> None:
+        repo = AsyncMock()
+        repo.get_by_email.return_value = None
+
+        handler = CreateCustomerHandler(customer_repository=repo)
+        customer = await handler.handle(
+            CreateCustomerCommand(name="Alice", email="  alice@example.com  ")
+        )
+
+        assert customer.email.value == "alice@example.com"
+
     async def test_raises_on_invalid_country(self) -> None:
         repo = AsyncMock()
         repo.get_by_email.return_value = None

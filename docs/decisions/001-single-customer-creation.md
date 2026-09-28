@@ -19,3 +19,7 @@ Customers are created through self-registration — a human filling in their own
 
 - Callers that need to create many customers must call the endpoint once per customer.
 - Error handling is straightforward: one request, one outcome (201, 409, or 422).
+
+## Concurrency & Duplicate Handling
+
+Under concurrent requests both transactions can pass the application-level uniqueness check before either writes. The database unique constraint on `email` catches the duplicate. The repository catches `psycopg.errors.UniqueViolation` (pg error `23505`) and re-raises it as `CustomerEmailAlreadyExistsError`, which the exception handler maps to 409. A broader `IntegrityError` is not caught — only the specific unique-violation subclass is handled, so other constraint failures still surface as unexpected errors.

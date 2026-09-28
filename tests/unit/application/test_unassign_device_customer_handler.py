@@ -26,7 +26,7 @@ class TestUnassignDeviceCustomerHandler:
     async def test_unassigns_device_and_clears_timezone(self) -> None:
         device = _make_assigned_device()
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = device
+        device_repo.get_by_id_for_update.return_value = device
 
         handler = UnassignDeviceCustomerHandler(device_repository=device_repo)
         result = await handler.handle(UnassignDeviceCustomerCommand(device_id=uuid4()))
@@ -38,7 +38,7 @@ class TestUnassignDeviceCustomerHandler:
     async def test_idempotent_when_already_unassigned(self) -> None:
         device = _make_unassigned_device()
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = device
+        device_repo.get_by_id_for_update.return_value = device
 
         handler = UnassignDeviceCustomerHandler(device_repository=device_repo)
         result = await handler.handle(UnassignDeviceCustomerCommand(device_id=uuid4()))
@@ -48,7 +48,7 @@ class TestUnassignDeviceCustomerHandler:
 
     async def test_raises_when_device_not_found(self) -> None:
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = None
+        device_repo.get_by_id_for_update.return_value = None
 
         handler = UnassignDeviceCustomerHandler(device_repository=device_repo)
         with pytest.raises(DeviceNotFoundError):

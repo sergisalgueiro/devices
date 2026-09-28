@@ -7,10 +7,13 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from asyncpg.exceptions import UniqueViolationError
 from sqlalchemy import and_, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.customer import Customer
+from app.domain.exceptions import CustomerEmailAlreadyExistsError
 from app.domain.repositories import CustomerListFilters, CustomerRepository, PaginatedResult
 from app.domain.value_objects import Country, CreatedAt, CustomerId, Email, Language, Name, TimeZone
 from app.infrastructure.db.models.customer import CustomerModel
@@ -89,7 +92,14 @@ class SqlAlchemyCustomerRepository(CustomerRepository):
         row.timezone = customer.timezone.value if customer.timezone is not None else None
         row.created_at = customer.created_at.value
 
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as e:
+            if isinstance(e.orig, UniqueViolationError) and e.orig.constraint_name == "customers_email_key":
+                raise CustomerEmailAlreadyExistsError(
+                    f"A customer with email {customer.email.value!r} already exists."
+                ) from e
+            raise
         logger.debug("Customer flushed: id=%s", customer.id.value)
 
     async def list(

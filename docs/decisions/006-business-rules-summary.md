@@ -74,7 +74,8 @@ Documented in [ADR 005 — Customer Deletion: Devices and Measurements](005-cust
 | Serial number races | Two concurrent `POST /devices` with the same serial number: the application check may pass for both, but the DB `UNIQUE` constraint rejects the second `INSERT`, producing a `409 Conflict`. |
 | Email races | Same pattern as serial numbers: application pre-check + DB `UNIQUE` constraint on `customers.email`. |
 | Measurement duplicates | `ON CONFLICT (id) DO NOTHING` makes concurrent ingestion of the same measurement ID safe — one wins, the rest are no-ops. |
-| Device updates | Concurrent mutations to the same device (e.g., two activation requests) follow last-writer-wins semantics. There is no pessimistic locking (`SELECT FOR UPDATE`). At `READ COMMITTED`, both transactions read the pre-update state, and the last to commit overwrites the first. For idempotent operations (activation) this is acceptable. Concurrent cross-customer re-assignment is now rejected at the domain layer before any write occurs. |
+| Device assignment / unassignment | `AssignDeviceCustomerHandler` and `UnassignDeviceCustomerHandler` fetch the device via `get_by_id_for_update`, which issues `SELECT … FOR UPDATE`. The row-level lock is held until the transaction commits, preventing concurrent assignment races: a second transaction blocks on the lock, re-reads the already-assigned device, and the domain check correctly rejects it. |
+| Device activation / status | Concurrent activation toggles follow last-writer-wins semantics — no locking needed because `set_active()` is idempotent regardless of commit order. |
 
 ## Consequences
 
@@ -82,4 +83,4 @@ Documented in [ADR 005 — Customer Deletion: Devices and Measurements](005-cust
 - Referential integrity (measurements → devices → customers) is enforced by FK constraints with `RESTRICT`.
 - Idempotency relies on client-provided IDs and PostgreSQL's `ON CONFLICT` mechanism.
 - Customer deletion is a two-step manual process (unassign devices, then delete) — no automatic cascading.
-- Concurrent device updates are safe enough for current use cases but would need `SELECT FOR UPDATE` if operations required read-then-write consistency (e.g., conditional state transitions).
+- Assignment and unassignment operations use `SELECT FOR UPDATE` to guarantee read-then-write consistency. Idempotent operations (activation) remain last-writer-wins.

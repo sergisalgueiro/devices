@@ -19,7 +19,7 @@ class TestAssignDeviceCustomerHandler:
     async def test_assigns_device_to_customer(self) -> None:
         customer_id = uuid4()
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = _make_device()
+        device_repo.get_by_id_for_update.return_value = _make_device()
         customer_repo = AsyncMock()
         customer_repo.get_by_id.return_value = object()
 
@@ -37,7 +37,7 @@ class TestAssignDeviceCustomerHandler:
     async def test_assigns_device_with_timezone(self) -> None:
         customer_id = uuid4()
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = _make_device()
+        device_repo.get_by_id_for_update.return_value = _make_device()
         customer_repo = AsyncMock()
         customer_repo.get_by_id.return_value = object()
 
@@ -56,7 +56,7 @@ class TestAssignDeviceCustomerHandler:
 
     async def test_raises_when_device_not_found(self) -> None:
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = None
+        device_repo.get_by_id_for_update.return_value = None
         customer_repo = AsyncMock()
 
         handler = AssignDeviceCustomerHandler(
@@ -71,7 +71,7 @@ class TestAssignDeviceCustomerHandler:
 
     async def test_raises_when_customer_not_found(self) -> None:
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = _make_device()
+        device_repo.get_by_id_for_update.return_value = _make_device()
         customer_repo = AsyncMock()
         customer_repo.get_by_id.return_value = None
 
@@ -91,7 +91,7 @@ class TestAssignDeviceCustomerHandler:
         device.assign_customer(CustomerId(existing_customer_id))
 
         device_repo = AsyncMock()
-        device_repo.get_by_id.return_value = device
+        device_repo.get_by_id_for_update.return_value = device
         customer_repo = AsyncMock()
         customer_repo.get_by_id.return_value = object()
 

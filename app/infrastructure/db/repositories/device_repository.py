@@ -41,6 +41,19 @@ class SqlAlchemyDeviceRepository(DeviceRepository):
         logger.debug("Device found: id=%s", device_id)
         return self._to_domain(row)
 
+    async def get_by_id_for_update(self, device_id: UUID) -> Device | None:
+        """Return the Device with the given id and acquire a row-level lock (SELECT FOR UPDATE)."""
+        logger.debug("SELECT FOR UPDATE device: id=%s", device_id)
+        result = await self._session.execute(
+            select(DeviceModel).where(DeviceModel.id == device_id).with_for_update()
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            logger.debug("Device not found in DB: id=%s", device_id)
+            return None
+        logger.debug("Device found (locked): id=%s", device_id)
+        return self._to_domain(row)
+
     async def get_by_serial_number(self, serial_number: str) -> Device | None:
         """Return the Device with the given serial number, or None if not found."""
         logger.debug("SELECT device: serial_number=%s", serial_number)

@@ -62,18 +62,6 @@ async def domain_validation_error_handler(request: Request, exc: DomainValidatio
     return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, content={"detail": str(exc)})
 
 
-@app.exception_handler(DomainError)
-async def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
-    logger.error("Domain error: %s %s: %s", request.method, request.url.path, exc)
-    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
-
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.error("Unhandled exception: %s %s", request.method, request.url.path, exc_info=True)
-    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
-
-
 @app.exception_handler(CustomerNotFoundError)
 async def customer_not_found_handler(request: Request, exc: CustomerNotFoundError) -> JSONResponse:
     logger.warning("Customer not found: %s %s: %s", request.method, request.url.path, exc)
@@ -96,6 +84,18 @@ async def serial_number_exists_handler(request: Request, exc: SerialNumberAlread
 async def device_already_assigned_handler(request: Request, exc: DeviceAlreadyAssignedError) -> JSONResponse:
     logger.warning("Device already assigned: %s %s: %s", request.method, request.url.path, exc)
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request: Request, exc: DomainError) -> JSONResponse:
+    logger.error("Domain error: %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error("Unhandled exception: %s %s", request.method, request.url.path, exc_info=True)
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
 
 
 class HealthResponse(BaseModel):

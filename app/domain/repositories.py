@@ -44,6 +44,11 @@ class DeviceRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_by_id_for_update(self, device_id: UUID) -> Device | None:
+        """Return the Device with the given id and acquire a row-level lock (SELECT FOR UPDATE)."""
+        ...
+
+    @abstractmethod
     async def get_by_serial_number(self, serial_number: str) -> Device | None:
         """Return the Device with the given serial number, or None if not found."""
         ...

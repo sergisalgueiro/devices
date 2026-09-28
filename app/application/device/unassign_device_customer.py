@@ -33,7 +33,7 @@ class UnassignDeviceCustomerHandler:
         """
         logger.debug("UnassignDeviceCustomer: device_id=%s", command.device_id)
 
-        device = await self.device_repository.get_by_id(command.device_id)
+        device = await self.device_repository.get_by_id_for_update(command.device_id)
         if device is None:
             raise DeviceNotFoundError(f"Device with id {command.device_id!r} not found.")
 

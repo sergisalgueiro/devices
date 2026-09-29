@@ -178,13 +178,16 @@ async def list_measurements(
     start_time: Annotated[datetime | None, Query(description="Inclusive lower bound on timestamp (UTC)")] = None,
     end_time: Annotated[datetime | None, Query(description="Exclusive upper bound on timestamp (UTC)")] = None,
     sort_dir: Annotated[str, Query(pattern="^(asc|desc)$", description="Sort direction")] = "desc",
-    limit: Annotated[int, Query(ge=1, le=100, description="Maximum results per page")] = 20,
+    limit: Annotated[int, Query(ge=1, le=5000, description="Maximum results per page")] = 20,
     cursor: Annotated[str | None, Query(description="Opaque pagination cursor from previous response")] = None,
 ) -> PaginatedMeasurementsResponse:
     """
     List measurements for a device with optional filters and cursor-based pagination.
 
-    - Results are sorted by timestamp, most recent first by default.
+    - Results are sorted by timestamp, most recent first by default (`sort_dir=desc`).
+      For time-series graphing and charting, use `sort_dir=asc` with `start_time` and `end_time`.
+    - Supports retrieving up to 5,000 points per request to accommodate time-series visualization
+      without triggering client-side pagination waterfalls.
     - Filters combine with AND logic.
     - Returns **404** if the device does not exist.
     - Returns **422** if query parameters fail validation.

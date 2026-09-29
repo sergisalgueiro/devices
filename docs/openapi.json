@@ -703,7 +703,7 @@
           "Devices"
         ],
         "summary": "List device measurements",
-        "description": "List measurements for a device with optional filters and cursor-based pagination.\n\n- Results are sorted by timestamp, most recent first by default.\n- Filters combine with AND logic.\n- Returns **404** if the device does not exist.\n- Returns **422** if query parameters fail validation.",
+        "description": "List measurements for a device with optional filters and cursor-based pagination.\n\n- Results are sorted by timestamp, most recent first by default (`sort_dir=desc`).\n  For time-series graphing and charting, use `sort_dir=asc` with `start_time` and `end_time`.\n- Supports retrieving up to 5,000 points per request to accommodate time-series visualization\n  without triggering client-side pagination waterfalls.\n- Filters combine with AND logic.\n- Returns **404** if the device does not exist.\n- Returns **422** if query parameters fail validation.",
         "operationId": "list_measurements_devices__device_id__measurements_get",
         "parameters": [
           {
@@ -791,7 +791,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 100,
+              "maximum": 5000,
               "minimum": 1,
               "description": "Maximum results per page",
               "default": 20,

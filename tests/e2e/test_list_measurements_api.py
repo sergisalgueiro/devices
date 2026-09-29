@@ -98,9 +98,20 @@ async def test_limit_out_of_range_returns_422(db_session: AsyncSession) -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
         response = await ac.get(
             f"/devices/{ids['device_id']}/measurements",
-            params={"limit": 101},
+            params={"limit": 5001},
         )
     assert response.status_code == 422
+
+
+async def test_list_measurements_allows_large_limit_for_time_series(db_session: AsyncSession) -> None:
+    ids = await _seed_device(db_session)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url=BASE_URL) as ac:
+        response = await ac.get(
+            f"/devices/{ids['device_id']}/measurements",
+            params={"limit": 5000},
+        )
+    assert response.status_code == 200
+    assert response.json()["items"] == []
 
 
 # ---------------------------------------------------------------------------

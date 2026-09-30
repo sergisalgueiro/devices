@@ -95,11 +95,105 @@ docs/
 ├── openapi.json       # Exported OpenAPI spec
 ├── decisions/         # Architecture Decision Records
 ├── code-review.md
-└── database-mechanisms.md
 tests/
 ├── unit/              # Unit tests (mocked infrastructure)
 └── e2e/               # End-to-end tests (real database)
 ```
+
+## Main Technical Decisions and Assumptions
+
+For an in-depth architectural breakdown, see [Technical Decisions & Improvements](docs/technical-decisions-and-improvements.md).
+
+### Architecture & Domain-Driven Design (DDD)
+- **Hexagonal / Clean Architecture**: Strict separation across 4 layers (Domain, Application, Infrastructure, API). The domain layer is pure Python standard library with zero external framework dependencies.
+- **Strict Value Object Composition**: Entities are composed strictly of immutable, self-validating Value Objects. No primitive type coercion occurs inside domain entities; conversion is strictly handled at the application and DTO boundaries.
+- **Explicit Dependency Injection**: Handler and repository dependencies are wired explicitly via FastAPI dependency injection with typed annotations.
+
+### Data Modeling & Integrity
+- **Decoupled Device Lifecycle & Customer Assignment ([ADR 004](docs/decisions/004-device-customer-assignment.md))**: Devices are registered as independent physical hardware before being assigned to customers. Device timezone represents deployment context and is set on assignment and cleared on unassignment.
+- **Localization Attributes**: Optional customer attributes (`country`, `language`, `timezone`) enable localized communications. Device `timezone` allows analyzing telemetry against local operating patterns while storing all data in UTC.
+- **Cascade Deletion Rules ([ADR 004](docs/decisions/004-device-customer-assignment.md), [ADR 005](docs/decisions/005-customer-deletion-cascade.md))**: Deleting a customer orphans devices back to the unassigned hardware inventory (`ON DELETE SET NULL`), while telemetry records prevent accidental device deletion (`ON DELETE RESTRICT`).
+- **Strict UTC & Native UUIDs**: All timestamps are timezone-aware UTC (`TIMESTAMPTZ` in PostgreSQL). Identifiers use native PostgreSQL `UUID` columns rather than strings.
+
+### Querying, Pagination & Idempotency
+- **Keyset (Cursor-Based) Pagination ([ADR 002](docs/decisions/002-cursor-based-pagination.md), [ADR 008](docs/decisions/008-measurement-query-and-time-series-pagination.md))**: Opaque base64 cursors backed by composite indexes guarantee $O(1)$ query performance and prevent page drifting under concurrent writes.
+- **Dual-Purpose Telemetry Querying ([ADR 008](docs/decisions/008-measurement-query-and-time-series-pagination.md))**: A high query limit ceiling (up to 5,000 records) allows frontends to retrieve continuous ranges for graphing in a single request without pagination loops, while cursor pagination protects memory.
+- **Client-Driven Idempotency ([ADR 006](docs/decisions/006-business-rules-summary.md))**: Ingestion requires client-generated measurement UUIDs with database-level conflict handling (`ON CONFLICT (id) DO NOTHING`), safely supporting client retries.
+
+### Concurrency Strategy
+- **Pessimistic Row Locking**: Device assignment operations use pessimistic row locking (`SELECT FOR UPDATE`) within transactions to prevent concurrent assignment races.
+- **Database Constraints as Concurrency Backstop**: Unique constraints on device serial numbers and customer emails act as the final defense against race conditions, mapped directly to HTTP 409 responses.
+
+### Key Assumptions
+- **Single-Tenant Local Scope**: Designed for local evaluation without distributed multi-tenant complexity.
+- **Hardware-Centric Telemetry Lineage**: Measurements belong to physical hardware units; reassigning a device retains historical telemetry on the device.
+- **Independent, Event-Driven Sensor Sampling (Narrow Table Approach)**: Onboard sensors are individual with different sampling rates and different change deltas (transmitting whenever triggered by a value change or when a time interval elapses). Because readings are produced asynchronously rather than in synchronized multi-sensor packets, telemetry is modeled and stored as individual sensor measurement records (one row per reading) rather than grouped by timestamp in JSON or JSONB columns.
+- **Synchronous Ingestion Suitability**: Direct synchronous batch ingestion (up to 1,000 items) is assumed sufficient for moderate workloads without an intermediate broker.
+- **UTC Authority**: UTC remains the universal source of truth for all ingestion and persistence.
+- **Device HTTP Compatibility**: Connected hardware is assumed to interpret standard HTTP status codes and handle backoff appropriately.
+
+## Known Limitations
+
+### Missing Use Cases & Incomplete API Surface
+- **Device Querying & Management**: No endpoints exist to list/search devices (`GET /devices`) with filters, inspect a single device (`GET /devices/{id}`), trigger status transitions (`PATCH /devices/{id}`), or delete devices (`DELETE /devices/{id}`).
+- **Customer Lifecycle Operations**: No endpoints exist to delete customers (`DELETE /customers/{id}`), update customer profiles (`PUT`/`PATCH /customers/{id}`), or retrieve a customer's assigned devices (`GET /customers/{id}/devices`).
+- **Telemetry Aggregation**: No server-side rollup endpoints (e.g. min, max, average over 1-hour or 1-day windows); clients must fetch and aggregate raw data points.
+
+### Concurrency & Locking Bottlenecks
+- **Database-Bound Concurrency**: Concurrency control relies on database row locks (`SELECT FOR UPDATE`), which can increase database connection wait times and restrict write throughput under high horizontal load.
+- **Lack of Distributed Locking**: No external distributed lock manager exists to coordinate multi-step workflows across services without holding active database transactions.
+
+### Ingestion & Connection Bottlenecks
+- **Synchronous Telemetry Ingestion**: Direct HTTP-to-database ingestion tightly couples sensor traffic bursts to relational database write throughput and connection limits.
+- **Connection Overhead (`NullPool`)**: The database engine uses `NullPool`, opening and closing physical database TCP connections on every request rather than maintaining a persistent connection pool.
+
+### Query Scoping & Test Setup
+- **Single-Device Query Scope**: Telemetry queries are strictly scoped to a single device at a time; fleet-wide or multi-device queries are not supported.
+- **Test Suite Duplication**: Integration tests duplicate database seeding helpers rather than utilizing centralized test data builders (Object Mothers).
+
+### Absence of Historical Audit Trail
+- **No Assignment or Configuration History**: Device assignments, unassignments, and configuration updates overwrite records in place. There is no historical ledger tracking past ownership, transfer timelines, or previous device timezones for historical telemetry context.
+
+### Basic Health Check
+- **Static Health Check**: `/health` was the first endpoint built simply to verify the container was up and running when there was nothing else to check yet. It returns a static `{"status": "ok"}` without verifying database connectivity or connection pool health.
+
+## What You Would Improve If You Had More Time
+
+### Complete Missing Use Cases & Solidify API
+- **Device API Surface**: Add fleet listing (`GET /devices`) with keyset pagination and filtering (status, customer, serial prefix), single device retrieval (`GET /devices/{id}`), status transitions (`PATCH /devices/{id}`), and guarded device deletion.
+- **Customer API Surface**: Add customer deletion (`DELETE /customers/{id}`), profile updates (`PATCH /customers/{id}`), and customer device listing (`GET /customers/{id}/devices`).
+
+### Distributed Concurrency & Locking
+- **Distributed Mutex Service**: Introduce an independent distributed locking service behind an application port to coordinate resource mutations across replicas without holding long-lived database row locks.
+
+### Test Architecture & Fixtures
+- **Object Mother & Data Builders**: Implement centralized test data factories to streamline domain entity construction and database seeding across unit and integration tests.
+
+### Asynchronous Event-Driven Ingestion
+- **Decoupled Ingestion Pipeline**: Decouple ingestion from relational persistence using a message broker or queue (`202 Accepted` response with background consumer persistence) to absorb burst traffic.
+- **Lightweight Protocols**: Add support for lightweight IoT streaming protocols to reduce HTTP connection overhead.
+
+### Database Optimization & Retention
+- **Retention & Archiving**: Implement automated data retention and archiving policies for historical telemetry.
+- **Connection Pool Tuning**: Replace `NullPool` with a tuned, persistent connection pool supporting connection reuse and overflow limits.
+
+### Security & Multi-Tenancy
+- **Authentication & RBAC**: Add authentication with role-based access control distinguishing administrator and customer roles.
+- **Tenant Isolation**: Enforce ownership verification or database row-level security so customers can only access their own devices and telemetry.
+- **Rate Limiting**: Implement token bucket rate limiting on ingestion endpoints to safeguard against misbehaving devices.
+
+### Observability & Health Checks
+- **Structured JSON Logging**: Format application logs as structured JSON containing timestamp, log level, request ID, client IP, and handler context for ingestion into centralized log aggregators.
+- **Tiered Health Probes**: Split `/health` into a shallow liveness probe (`/health/live`) to catch process hangs and a deep readiness probe (`/health/ready`) that checks database connectivity (`SELECT 1`) and pool capacity.
+
+### Domain Event Publishing & Analytical Pipeline
+- **Domain Event Publishing**: Emit domain events for lifecycle state transitions (assignments, status changes, configuration updates) via an event bus or outbox pattern.
+- **Analytical Data Pipeline**: Stream events into an analytical data store or data lake to build an immutable audit trail, enable historical timezone reconstruction for telemetry analysis, and support business intelligence.
+
+### Command & Query Bus (CQRS Dispatcher)
+- **Unified Dispatcher**: Replace direct handler injection in API routes with a centralized Command and Query Bus.
+- **Pluggable Middleware Pipeline**: Implement pipeline middleware for cross-cutting concerns (automatic transaction boundaries, structured logging, centralized authorization).
+- **Multi-Transport Portability**: Allow the exact same application handlers and validation pipelines to be executed from background job workers, message consumers, or CLI tools without HTTP dependencies.
 
 ## AI-Assisted Development
 

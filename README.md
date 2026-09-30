@@ -229,3 +229,11 @@ All AI-generated code was verified through a multi-tiered validation workflow:
 - **Claude Code `AGENTS.md`**: Custom global configuration defining model routing strategies and subagent orchestration.
 - **FastAPI Skill (`.agents/skills/fastapi`)**: Guidance ensuring idiomatic FastAPI usage (e.g., `Annotated` dependencies, proper response modeling, async/sync boundary separation).
 - **Personal DDD/Hexagonal Skill**: A custom skill dedicated to enforcing strict Hexagonal / Domain-Driven Design boundaries, immutability of Value Objects, and separation of concerns.
+
+## Optional Technical Requirements
+
+Detailed specifications and architectural designs for optional technical requirements can be found in the following documents:
+
+- [API Authentication & Access Control](docs/api-authentication.md): Architecture and technical proposal covering user identity (JWT + refresh tokens), Role-Based Access Control (RBAC), and IoT edge device authentication (`X-Device-Token`).
+- [Monitoring & Observability](docs/monitoring-and-observability.md): Guide detailing telemetry pillars (metrics, distributed tracing, structured JSON logs), dashboarding, and alerting standards for production IoT workloads.
+

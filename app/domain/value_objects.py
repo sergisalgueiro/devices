@@ -107,10 +107,11 @@ class Email(ValueObject[str]):
         trimmed = self.value.strip()
         if not trimmed:
             raise InvalidEmailError("Email cannot be empty")
-        if not _EMAIL_REGEX.match(trimmed):
+        normalized = trimmed.lower()
+        if not _EMAIL_REGEX.match(normalized):
             raise InvalidEmailError(f"Invalid email address format: {self.value!r}")
-        if trimmed != self.value:
-            object.__setattr__(self, "value", trimmed)
+        if normalized != self.value:
+            object.__setattr__(self, "value", normalized)
 
 
 @dataclass(frozen=True)

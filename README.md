@@ -44,10 +44,11 @@ make test-v       # run tests with verbose output
 
 ## Database Migrations
 
+Database migrations follow a strict **forward-only** policy ([ADR 009](docs/decisions/009-forward-only-database-migrations.md)). Downgrading migrations is prohibited across all environments to prevent destructive data loss, schema desynchronization, and deployment failures. All schema changes (including rollbacks or fixes) must be applied as new forward migrations (`alembic upgrade head`).
+
 ```bash
 make migrate                      # apply all pending migrations
 make migration msg="add foo"      # auto-generate a new migration
-make rollback                     # rollback the last migration
 ```
 
 ## API Documentation
@@ -114,6 +115,7 @@ For an in-depth architectural breakdown, see [Technical Decisions & Improvements
 - **Localization Attributes**: Optional customer attributes (`country`, `language`, `timezone`) enable localized communications. Device `timezone` allows analyzing telemetry against local operating patterns while storing all data in UTC.
 - **Cascade Deletion Rules ([ADR 004](docs/decisions/004-device-customer-assignment.md), [ADR 005](docs/decisions/005-customer-deletion-cascade.md))**: Deleting a customer orphans devices back to the unassigned hardware inventory (`ON DELETE SET NULL`), while telemetry records prevent accidental device deletion (`ON DELETE RESTRICT`).
 - **Strict UTC & Native UUIDs**: All timestamps are timezone-aware UTC (`TIMESTAMPTZ` in PostgreSQL). Identifiers use native PostgreSQL `UUID` columns rather than strings.
+- **Forward-Only Database Migrations ([ADR 009](docs/decisions/009-forward-only-database-migrations.md))**: Schema evolution is strictly forward-only. `downgrade()` across all migrations raises `NotImplementedError` to safeguard against destructive data loss, schema desynchronization, and automated rollback failures in CI/CD.
 
 ### Querying, Pagination & Idempotency
 - **Keyset (Cursor-Based) Pagination ([ADR 002](docs/decisions/002-cursor-based-pagination.md), [ADR 008](docs/decisions/008-measurement-query-and-time-series-pagination.md))**: Opaque base64 cursors backed by composite indexes guarantee $O(1)$ query performance and prevent page drifting under concurrent writes.

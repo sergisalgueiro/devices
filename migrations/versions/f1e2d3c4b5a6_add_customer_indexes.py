@@ -28,8 +28,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_index('ix_customers_language', table_name='customers')
-    op.drop_index('ix_customers_country', table_name='customers')
-    op.drop_index('ix_customers_email_id', table_name='customers')
-    op.drop_index('ix_customers_name_id', table_name='customers')
-    op.drop_index('ix_customers_created_at_id', table_name='customers')
+    raise NotImplementedError(
+        "Downgrades are prohibited by engineering policy. "
+    )

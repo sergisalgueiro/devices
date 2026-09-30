@@ -25,4 +25,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    ${downgrades if downgrades else "pass"}
+    raise NotImplementedError(
+        "Downgrades are prohibited by engineering policy. "
+    )

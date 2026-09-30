@@ -35,11 +35,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    """Revert devices.customer_id FK back to RESTRICT."""
-    op.drop_constraint('fk_devices_customer_id_customers', 'devices', type_='foreignkey')
-    op.create_foreign_key(
-        'fk_devices_customer_id_customers',
-        'devices', 'customers',
-        ['customer_id'], ['id'],
-        ondelete='RESTRICT',
+    """Downgrade schema."""
+    raise NotImplementedError(
+        "Downgrades are prohibited by engineering policy. "
     )

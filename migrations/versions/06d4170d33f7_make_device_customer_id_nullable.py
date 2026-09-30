@@ -25,4 +25,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.alter_column('devices', 'customer_id', existing_type=sa.UUID(), nullable=False)
+    raise NotImplementedError(
+        "Downgrades are prohibited by engineering policy. "
+    )

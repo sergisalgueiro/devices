@@ -38,5 +38,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_index("ix_measurements_device_id_timestamp_id", table_name="measurements")
-    op.create_index("ix_measurements_device_id", "measurements", ["device_id"])
+    raise NotImplementedError(
+        "Downgrades are prohibited by engineering policy. "
+    )
